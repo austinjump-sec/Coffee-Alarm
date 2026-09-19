@@ -12,6 +12,15 @@
     },
     "android": {
       "adaptiveIcon": {
+      	 "permissions": [
+       	 "INTERNET",
+       	 "ACCESS_NETWORK_STATE",
+         "ACCESS_WIFI_STATE",
+         "CHANGE_WIFI_MULTICAST_STATE",
+         "WAKE_LOCK",
+         "SCHEDULE_EXACT_ALARM",
+         "POST_NOTIFICATIONS"
+       ]
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",

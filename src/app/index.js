@@ -16,7 +16,7 @@ import AlarmManager from 'react-native-alarm-manager'
 import Zeroconf from 'react-native-zeroconf';
 import {LinearGradient} from 'expo-linear-gradient'
 import styles from './styles.js'
-
+import * as Linking from 'expo-linking';
 const zeroconf = new Zeroconf();
 const militaryToAm = Array.from({ length: 24 }, (_, hour) => {
   const period = hour < 12 ? 'AM' : 'PM';
@@ -506,11 +506,10 @@ export default function App() {
         <Text style={styles.title}>☕ Coffee Alarm</Text>
 
         <Text style={styles.subtitle}>Have a cup of coffee when you wake!</Text>
-        <a href="example.com">
-          {' '}
-          <p> Tutorial on ESP-32 to Espresso machine hookup </p>
-        </a>
-
+       
+<Pressable onPress={() => Linking.openURL('https://example.com')}>
+  <Text>Tutorial on ESP-32 to Espresso machine hookup</Text>
+</Pressable>
         {/* ESP32 CONNECTION */}
 
         <View style={styles.connectionCard}>

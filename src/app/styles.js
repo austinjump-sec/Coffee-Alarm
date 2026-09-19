@@ -112,7 +112,6 @@ const styles = StyleSheet.create({
   soundOptionSelected: {
     backgroundColor: '#5367DF',
     borderColor: '#5367DF',
-    backgroundImage: 'linear-gradient(to bottom, #5367DF, #abb7ff)',
   },
 
   soundOptionText: {
@@ -139,10 +138,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  selectDayActive: {
-    backgroundImage: 'linear-gradient(to bottom, #5367DF, #abb7ff)',
-
-  },
 
   selectDayText: {
     fontSize: 12,
@@ -160,7 +155,6 @@ const styles = StyleSheet.create({
     minHeight: 46,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundImage: 'linear-gradient(to bottom, #5367DF, #abb7ff)',
   },
 
   primaryButtonText: {
@@ -182,7 +176,6 @@ const styles = StyleSheet.create({
   },
 
   secondaryButtonSelected: {
-    backgroundImage: 'linear-gradient(to bottom, #5367DF, #abb7ff)',
     borderColor: '#5367DF',
   },
 
@@ -203,7 +196,6 @@ const styles = StyleSheet.create({
     minHeight: 50,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundImage: 'linear-gradient(to bottom, #5367DF, #abb7ff)',
   },
 
   addButtonText: {
@@ -303,7 +295,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   deleteButtonHover: {
-    backgroundImage: 'linear-gradient(to bottom, #e30909, #f5997d)',
     borderRadius: 12
   },
 

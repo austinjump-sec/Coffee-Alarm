@@ -12,7 +12,10 @@ import {
   View,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import AlarmManager from 'react-native-alarm-manager'
+import * as Notifications from 'expo-notifications';
+import GradientButton from '/components/gradient.js'
+import DeleteButton from '/components/delete.js'
+import { Platform } from 'react-native';
 import Zeroconf from 'react-native-zeroconf';
 import {LinearGradient} from 'expo-linear-gradient'
 import styles from './styles.js'
@@ -22,6 +25,14 @@ const militaryToAm = Array.from({ length: 24 }, (_, hour) => {
   const period = hour < 12 ? 'AM' : 'PM';
   const displayHour = hour % 12 || 12;
   return [String(hour).padStart(2, '0'), `${displayHour}:${period}`];
+});
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
 });
 
 const formatTime = (time, useAmPm) => {
@@ -78,6 +89,77 @@ export default function App() {
   const [sounds, setSounds] = useState(DEFAULT_SOUNDS);
   const [value, setValue] = useState('');
   
+  const cancelAlarmNotifications = async (alarm) => {
+  if (Platform.OS === 'web') {
+    return;
+  }
+
+  for (const notificationId of alarm.notificationIds || []) {
+    await Notifications.cancelScheduledNotificationAsync(notificationId);
+  }
+};
+
+const deleteAlarm = async (id) => {
+  const alarm = alarms.find((item) => item.id === id);
+
+  if (alarm) {
+    await cancelAlarmNotifications(alarm);
+  }
+
+  setAlarms((current) => current.filter((item) => item.id !== id));
+  await deleteAlarmFromESP32(id);
+};
+  const scheduleAlarmNotifications = async (alarm) => {
+  if (Platform.OS === 'web') {
+    return [];
+  }
+
+  const notificationIds = [];
+
+  for (const day of alarm.days) {
+    const [hour, minute] = alarm.time.split(':').map(Number);
+
+    const notificationId =
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: alarm.label,
+          body: 'Coffee alarm',
+          sound: 'default',
+          data: {
+            alarmId: alarm.id,
+            soundId: alarm.soundId,
+          },
+        },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
+          weekday: weekdayNumbers[day],
+          hour,
+          minute,
+          repeats: true,
+        },
+      });
+
+    notificationIds.push(notificationId);
+  }
+
+  return notificationIds;
+};
+
+  useEffect(() => {
+  requestNotificationPermission();
+}, []);
+
+const requestNotificationPermission = async () => {
+  if (Platform.OS === 'web') {
+    return;
+  }
+
+  const current = await Notifications.getPermissionsAsync();
+
+  if (current.status !== 'granted') {
+    await Notifications.requestPermissionsAsync();
+  }
+};
   const handleTimeChange = (text) => {
     const digits = text.replace(/\D/g, '').slice(0, 4);
     let formattedVal = digits;
@@ -363,20 +445,15 @@ export default function App() {
       soundId: newSound,
       enabled: true,
       days: selectedDays,
+      notificationIds: [],
     };
+    if (Platform.OS !== 'web') {
+  alarm.notificationIds = await scheduleAlarmNotifications(alarm);
+}
 
     const updatedAlarms = [...alarms, alarm].sort((a, b) =>
       a.time.localeCompare(b.time)
     );
-    try {
-      AlarmManager.schedule(alarm);
-    } catch (error) {
-      console.error('Could not schedule Android alarm:', error);
-      Alert.alert(
-        'Alarm saved',
-        'The alarm was saved in the app, but Android scheduling failed.'
-      );
-    }
 
     setAlarms(updatedAlarms);
 
@@ -392,12 +469,6 @@ export default function App() {
   // Delete alarm
   // -----------------------------
 
-  const deleteAlarm = async (id) => {
-    setAlarms((current) => current.filter((alarm) => alarm.id !== id));
-
-    await deleteAlarmFromESP32(id);
-  };
-
   // -----------------------------
   // Enable / disable alarm
   // -----------------------------
@@ -408,21 +479,20 @@ export default function App() {
     if (!alarm) {
       return;
     }
+    if (alarm.enabled){
+    await cancelAlarmNotifications(alarm)
+    }
 
     const changedAlarm = {
       ...alarm,
       enabled: !alarm.enabled,
     };
+     changedAlarm.notificationIds =
+    await scheduleAlarmNotifications(changedAlarm);
 
     setAlarms((current) =>
       current.map((item) => (item.id === id ? changedAlarm : item))
     );
-
-    if (changedAlarm.enabled) {
-      AlarmManager.schedule(changedAlarm);
-    } else {
-      AlarmManager.cancel(id);
-    }
 
     await sendAlarmToESP32(changedAlarm);
   };
@@ -476,22 +546,15 @@ export default function App() {
           })}
         </View>
 
-        <Pressable
-          style={({ hovered }) => [
-            styles.deleteButton,
-            hovered && styles.deleteButtonHover,
-          ]}
+        <DeleteButton
+          style={styles.deleteButton}
           onPress={() => deleteAlarm(item.id)}>
-          {({ hovered }) => (
             <Text
-              style={[
-                styles.deleteText,
-                hovered && styles.deleteTextHover,
-              ]}>
+              style={ styles.deleteText}>
               Delete Alarm
             </Text>
           )}
-        </Pressable>
+        </DeleteButton>
       </View>
     );
   };
@@ -535,19 +598,19 @@ export default function App() {
             </View>
           </View>
 
-          <Pressable
+          <GradientButton
             style={styles.primaryButton}
             onPress={scanForESP32}
             disabled={isScanning}>
             <Text style={styles.primaryButtonText}>
               {isScanning ? 'Scanning...' : 'Find ESP32'}
             </Text>
-          </Pressable>
+          </GradientButton>
 
           {esp32 && (
-            <Pressable style={styles.secondaryButton} onPress={testESP32}>
+            <GradientButton style={styles.secondaryButton} onPress={testESP32}>
               <Text style={styles.secondaryButtonText}>Test Connection</Text>
-            </Pressable>
+            </GradientButton>
           )}
         </View>
 
@@ -555,7 +618,7 @@ export default function App() {
         <View style={styles.buttonRow}>
          
 
-          <Pressable
+          <GradientButton
             style={[
               styles.secondaryButton,
               isAmPm && styles.secondaryButtonSelected,
@@ -571,8 +634,8 @@ export default function App() {
               ]}>
               AM/PM Time
             </Text>
-          </Pressable>
-           <Pressable
+          </GradientButton>
+           <GradientButton
             style={[
               styles.secondaryButton,
               isMilitary && styles.secondaryButtonSelected,
@@ -588,7 +651,7 @@ export default function App() {
               ]}>
               Military Time 
             </Text>
-          </Pressable>
+          </GradientButton>
         </View>
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>New Alarm</Text>
@@ -607,7 +670,7 @@ export default function App() {
           />
           {isAmPm && (
             <View style={styles.buttonRow}>
-          <Pressable
+          <GradientButton
             style={[styles.secondaryButton,
                                   timePeriod === 'AM' && styles.secondaryButtonSelected]}
                   onPress={() => setTimePeriod('AM')}>
@@ -620,8 +683,8 @@ export default function App() {
              AM
             </Text>
             
-          </Pressable>
-          <Pressable
+          </GradientButton>
+          <GradientButton
             style={[styles.secondaryButton,
                 timePeriod === 'PM' && styles.secondaryButtonSelected]}
                 onPress={() => setTimePeriod('PM')}>
@@ -633,7 +696,7 @@ export default function App() {
              PM
             </Text>
             
-          </Pressable>
+          </GradientButton>
             </View>
           )}
 
@@ -654,7 +717,7 @@ export default function App() {
               const selected = newSound === sound.id;
 
               return (
-                <Pressable
+                <GradientButton
                   key={sound.id}
                   style={[
                     styles.soundOption,
@@ -668,7 +731,7 @@ export default function App() {
                     ]}>
                     {sound.name}
                   </Text>
-                </Pressable>
+                </GradientButton>
               );
             })}
           </View>
@@ -680,7 +743,7 @@ export default function App() {
               const selected = selectedDays.includes(day);
 
               return (
-                <Pressable
+                <GradientButton
                   key={day}
                   style={[styles.selectDay, selected && styles.selectDayActive]}
                   onPress={() => toggleSelectedDay(day)}>
@@ -691,19 +754,19 @@ export default function App() {
                     ]}>
                     {day.substring(0, 3)}
                   </Text>
-                </Pressable>
+                </GradientButton>
               );
             })}
           </View>
 
-          <Pressable
+          <GradientButton
             style={styles.addButton}
             onPress={addAlarm}
             disabled={isSending}>
             <Text style={styles.addButtonText}>
               {isSending ? 'Sending...' : 'Add Alarm'}
             </Text>
-          </Pressable>
+          </GradientButton>
         </View>
 
         {/* ALARMS */}

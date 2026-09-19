@@ -13,8 +13,8 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
-import GradientButton from '/components/gradient.js'
-import DeleteButton from '/components/delete.js'
+import GradientButton from '../components/gradient.js'
+import DeleteButton from '../components/delete.js'
 import { Platform } from 'react-native';
 import Zeroconf from 'react-native-zeroconf';
 import {LinearGradient} from 'expo-linear-gradient'

@@ -1,0 +1,746 @@
+import React, { useRef, useEffect, useState } from 'react';
+import {
+  Alert,
+  FlatList,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import AlarmManager from 'react-native-alarm-manager'
+import Zeroconf from 'react-native-zeroconf';
+import {LinearGradient} from 'expo-linear-gradient'
+import styles from './styles.js'
+
+const zeroconf = new Zeroconf();
+const militaryToAm = Array.from({ length: 24 }, (_, hour) => {
+  const period = hour < 12 ? 'AM' : 'PM';
+  const displayHour = hour % 12 || 12;
+  return [String(hour).padStart(2, '0'), `${displayHour}:${period}`];
+});
+
+const formatTime = (time, useAmPm) => {
+  if (!useAmPm || !/^\d{2}:\d{2}$/.test(time)) {
+    return time;
+  }
+
+  const [hourText, minutes] = time.split(':');
+  const hour = Number(hourText);
+  const tableEntry = militaryToAm[hour];
+
+  if (!tableEntry) {
+    return time;
+  }
+
+  return `${tableEntry[1].replace(':', `:${minutes} `)}`;
+};
+const POSSIBLE_DAYS = [
+  'Sunday',
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+];
+
+const DEFAULT_SOUNDS = [
+  {
+    id: 'beep',
+    name: 'Classic Beep',
+  },
+  {
+    id: 'alarm',
+    name: 'Alarm',
+  },
+];
+
+export default function App() {
+  const [alarms, setAlarms] = useState([]);
+  const [selectedDays, setSelectedDays] = useState([]);
+
+  const [newTime, setNewTime] = useState('');
+  const [newLabel, setNewLabel] = useState('');
+  const [newSound, setNewSound] = useState('beep');
+
+  const [esp32, setEsp32] = useState(null);
+  const [isScanning, setIsScanning] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [isMilitary, setMilitary] = useState(false);
+  const [isAmPm, setAmPm] = useState(true);
+  const [timePeriod, setTimePeriod] = useState('AM');
+  const [time, setTime] = useState(false);
+  const [sounds, setSounds] = useState(DEFAULT_SOUNDS);
+  const [value, setValue] = useState('');
+  
+  const handleTimeChange = (text) => {
+    const digits = text.replace(/\D/g, '').slice(0, 4);
+    let formattedVal = digits;
+
+    // Accept 700 and 0700 as 7:00 / 07:00 in either time mode.
+    if (digits.length === 3) {
+      formattedVal = `${digits.slice(0, 1)}:${digits.slice(1)}`;
+    } else if (digits.length === 4) {
+      formattedVal = `${digits.slice(0, 2)}:${digits.slice(2)}`;
+    }
+
+    setNewTime(formattedVal);
+  }
+
+  // -----------------------------
+  // Load alarms
+  // -----------------------------
+
+  useEffect(() => {
+    loadAlarms();
+  }, []);
+
+  
+
+  const loadAlarms = async () => {
+    try {
+      const saved = await AsyncStorage.getItem('alarms');
+
+      if (saved) {
+        setAlarms(JSON.parse(saved));
+      }
+    } catch (error) {
+      console.error('Could not load alarms:', error);
+    }
+  };
+
+  // -----------------------------
+  // Save alarms
+  // -----------------------------
+
+  useEffect(() => {
+    saveAlarms();
+  }, [alarms]);
+
+  const saveAlarms = async () => {
+    try {
+      await AsyncStorage.setItem('alarms', JSON.stringify(alarms));
+    } catch (error) {
+      console.error('Could not save alarms:', error);
+    }
+  };
+
+  // -----------------------------
+  // Zeroconf setup
+  // -----------------------------
+
+  useEffect(() => {
+    const handleStart = () => {
+      console.log('mDNS scan started');
+      setIsScanning(true);
+    };
+
+    const handleResolved = (service) => {
+      console.log('mDNS service resolved:', service);
+
+      if (service.name === 'alarm-espresso' || service.name === 'alarm-esp32') {
+        const address = `http://${service.host}:${service.port}`;
+
+        setEsp32({
+          name: service.name,
+          host: service.host,
+          port: service.port,
+          address,
+        });
+
+        setIsScanning(false);
+
+        console.log('Connected to ESP32:', address);
+      }
+    };
+
+    const handleError = (error) => {
+      console.error('mDNS error:', error);
+      setIsScanning(false);
+    };
+
+    zeroconf.on('start', handleStart);
+    zeroconf.on('resolved', handleResolved);
+    zeroconf.on('error', handleError);
+
+    return () => {
+      zeroconf.removeListener('start', handleStart);
+
+      zeroconf.removeListener('resolved', handleResolved);
+
+      zeroconf.removeListener('error', handleError);
+    };
+  }, []);
+
+  // -----------------------------
+  // Find ESP32
+  // -----------------------------
+
+  const scanForESP32 = () => {
+    setIsScanning(true);
+
+    try {
+      zeroconf.scan('http', 'tcp', 'local.');
+    } catch (error) {
+      console.error('Could not start mDNS scan:', error);
+
+      setIsScanning(false);
+
+      Alert.alert('ESP32 Error', 'Could not start device discovery.');
+    }
+  };
+
+  // -----------------------------
+  // Test ESP32 connection
+  // -----------------------------
+
+  const testESP32 = async () => {
+    if (!esp32) {
+      Alert.alert('ESP32', 'No ESP32 is connected.');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${esp32.address}/status`, {
+        method: 'GET',
+      });
+
+      if (!response.ok) {
+        throw new Error(`ESP32 returned ${response.status}`);
+      }
+
+      Alert.alert('ESP32 Connected', 'The ESP32 responded successfully.');
+    } catch (error) {
+      console.error('ESP32 connection failed:', error);
+
+      Alert.alert('Connection Failed', 'Could not communicate with the ESP32.');
+    }
+  };
+
+  // -----------------------------
+  // Send alarm to ESP32
+  // -----------------------------
+
+  const sendAlarmToESP32 = async (alarm) => {
+    if (!esp32) {
+      console.log('No ESP32 connected. Alarm saved locally.');
+      return false;
+    }
+
+    try {
+      setIsSending(true);
+
+      const response = await fetch(`${esp32.address}/alarms`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: alarm.id,
+          time: alarm.time,
+          label: alarm.label,
+          enabled: alarm.enabled,
+          days: alarm.days,
+          soundId: alarm.soundId,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`ESP32 returned ${response.status}`);
+      }
+
+      console.log('Alarm synchronized with ESP32');
+
+      return true;
+    } catch (error) {
+      console.error('Could not communicate with ESP32:', error);
+
+      Alert.alert(
+        'ESP32 Sync Failed',
+        'The alarm was saved on the phone, but could not be sent to the ESP32.'
+      );
+
+      return false;
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  // -----------------------------
+  // Delete alarm from ESP32
+  // -----------------------------
+
+  const deleteAlarmFromESP32 = async (id) => {
+    if (!esp32) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${esp32.address}/alarms/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error(`ESP32 returned ${response.status}`);
+      }
+
+      console.log('Alarm deleted from ESP32');
+    } catch (error) {
+      console.error('Could not delete alarm from ESP32:', error);
+    }
+  };
+
+  // -----------------------------
+  // Select days
+  // -----------------------------
+
+  const toggleSelectedDay = (day) => {
+    setSelectedDays((current) => {
+      if (current.includes(day)) {
+        return current.filter((item) => item !== day);
+      }
+
+      return [...current, day];
+    });
+  };
+
+  // -----------------------------
+  // Add alarm
+  // -----------------------------
+
+  const addAlarm = async () => {
+    if (!newTime) {
+      Alert.alert('Missing Time', 'Please select an alarm time.');
+      return;
+    }
+
+    const timeParts = newTime.split(':');
+    const enteredHours = Number(timeParts[0]);
+    const minutes = Number(timeParts[1]);
+
+    if (
+      timeParts.length !== 2 ||
+      !/^\d{1,2}:\d{2}$/.test(newTime) ||
+      !Number.isInteger(enteredHours) ||
+      !Number.isInteger(minutes) ||
+      minutes < 0 ||
+      minutes > 59 ||
+      (isAmPm && (enteredHours < 1 || enteredHours > 12)) ||
+      (!isAmPm && (enteredHours < 0 || enteredHours > 23))
+    ) {
+      Alert.alert(
+        'Invalid time',
+        isAmPm
+          ? 'Enter an AM/PM time such as 7:00.'
+          : 'Enter a valid time such as 07:00.'
+      );
+      return;
+    }
+
+    let hours = enteredHours;
+
+    if (isAmPm) {
+      hours = timePeriod === 'AM'
+        ? enteredHours % 12
+        : (enteredHours % 12) + 12;
+    }
+    if (selectedDays.length === 0) {
+      Alert.alert('Select Days', 'Please select at least one day.');
+      return;
+    }
+
+    const normalizedTime = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+
+    const alarm = {
+      id: Date.now().toString(),
+      time: normalizedTime,
+      label: newLabel.trim() || 'Alarm',
+      soundId: newSound,
+      enabled: true,
+      days: selectedDays,
+    };
+
+    const updatedAlarms = [...alarms, alarm].sort((a, b) =>
+      a.time.localeCompare(b.time)
+    );
+    try {
+      AlarmManager.schedule(alarm);
+    } catch (error) {
+      console.error('Could not schedule Android alarm:', error);
+      Alert.alert(
+        'Alarm saved',
+        'The alarm was saved in the app, but Android scheduling failed.'
+      );
+    }
+
+    setAlarms(updatedAlarms);
+
+    // Send schedule to ESP32.
+    await sendAlarmToESP32(alarm);
+
+    // Reset form.
+    setNewLabel('');
+    setSelectedDays([]);
+  };
+
+  // -----------------------------
+  // Delete alarm
+  // -----------------------------
+
+  const deleteAlarm = async (id) => {
+    setAlarms((current) => current.filter((alarm) => alarm.id !== id));
+
+    await deleteAlarmFromESP32(id);
+  };
+
+  // -----------------------------
+  // Enable / disable alarm
+  // -----------------------------
+
+  const toggleAlarm = async (id) => {
+    const alarm = alarms.find((item) => item.id === id);
+
+    if (!alarm) {
+      return;
+    }
+
+    const changedAlarm = {
+      ...alarm,
+      enabled: !alarm.enabled,
+    };
+
+    setAlarms((current) =>
+      current.map((item) => (item.id === id ? changedAlarm : item))
+    );
+
+    if (changedAlarm.enabled) {
+      AlarmManager.schedule(changedAlarm);
+    } else {
+      AlarmManager.cancel(id);
+    }
+
+    await sendAlarmToESP32(changedAlarm);
+  };
+
+  // -----------------------------
+  // Render alarm
+  // -----------------------------
+
+  const renderAlarm = ({ item }) => {
+    const sound = sounds.find((s) => s.id === item.soundId);
+
+    return (
+      <View style={[styles.alarmCard, !item.enabled && styles.alarmDisabled]}>
+        <View style={styles.alarmTop}>
+          <View>
+            <Text style={styles.alarmTime}>
+              {formatTime(item.time, isAmPm)}
+            </Text>
+
+            <Text style={styles.alarmLabel}>{item.label}</Text>
+
+            <Text style={styles.soundText}>
+              {sound?.name || 'Default sound'}
+            </Text>
+          </View>
+
+          <Switch
+            value={item.enabled}
+            onValueChange={() => toggleAlarm(item.id)}
+            trackColor={{
+              false: '#767577',
+              true: '#6375E8',
+            }}
+            thumbColor="#FFFFFF"
+          />
+        </View>
+
+        <View style={styles.daysContainer}>
+          {POSSIBLE_DAYS.map((day) => {
+            const active = item.days?.includes(day);
+
+            return (
+              <View
+                key={day}
+                style={[styles.dayBadge, active && styles.dayBadgeActive]}>
+                <Text style={[styles.dayText, active && styles.dayTextActive]}>
+                  {day.substring(0, 3)}
+                </Text>
+              </View>
+            );
+          })}
+        </View>
+
+        <Pressable
+          style={({ hovered }) => [
+            styles.deleteButton,
+            hovered && styles.deleteButtonHover,
+          ]}
+          onPress={() => deleteAlarm(item.id)}>
+          {({ hovered }) => (
+            <Text
+              style={[
+                styles.deleteText,
+                hovered && styles.deleteTextHover,
+              ]}>
+              Delete Alarm
+            </Text>
+          )}
+        </Pressable>
+      </View>
+    );
+  };
+
+  // -----------------------------
+  // UI
+  // -----------------------------
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <Text style={styles.title}>☕ Coffee Alarm</Text>
+
+        <Text style={styles.subtitle}>Have a cup of coffee when you wake!</Text>
+        <a href="example.com">
+          {' '}
+          <p> Tutorial on ESP-32 to Espresso machine hookup </p>
+        </a>
+
+        {/* ESP32 CONNECTION */}
+
+        <View style={styles.connectionCard}>
+          <View style={styles.connectionHeader}>
+            <View
+              style={[
+                styles.statusDot,
+                {
+                  backgroundColor: esp32 ? '#22C55E' : '#EF4444',
+                },
+              ]}
+            />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.connectionTitle}>
+                {esp32
+                  ? 'ESP32 Trigger Connected'
+                  : 'ESP32 Trigger Not Connected'}
+              </Text>
+
+              {esp32 && (
+                <Text style={styles.connectionAddress}>{esp32.address}</Text>
+              )}
+            </View>
+          </View>
+
+          <Pressable
+            style={styles.primaryButton}
+            onPress={scanForESP32}
+            disabled={isScanning}>
+            <Text style={styles.primaryButtonText}>
+              {isScanning ? 'Scanning...' : 'Find ESP32'}
+            </Text>
+          </Pressable>
+
+          {esp32 && (
+            <Pressable style={styles.secondaryButton} onPress={testESP32}>
+              <Text style={styles.secondaryButtonText}>Test Connection</Text>
+            </Pressable>
+          )}
+        </View>
+
+        {/* NEW ALARM */}
+        <View style={styles.buttonRow}>
+         
+
+          <Pressable
+            style={[
+              styles.secondaryButton,
+              isAmPm && styles.secondaryButtonSelected,
+            ]}
+            onPress={() => {
+              setAmPm(true);
+              setMilitary(false);
+            }}>
+            <Text
+              style={[
+                styles.secondaryButtonText,
+                isAmPm && styles.secondaryButtonSelectedText,
+              ]}>
+              AM/PM Time
+            </Text>
+          </Pressable>
+           <Pressable
+            style={[
+              styles.secondaryButton,
+              isMilitary && styles.secondaryButtonSelected,
+            ]}
+            onPress={() => {
+              setMilitary(true);
+              setAmPm(false);
+            }}>
+            <Text
+              style={[
+                styles.secondaryButtonText,
+                isMilitary && styles.secondaryButtonSelectedText,
+              ]}>
+              Military Time 
+            </Text>
+          </Pressable>
+        </View>
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>New Alarm</Text>
+
+          <Text style={styles.inputLabel}>Time</Text>
+
+          <TextInput 
+            nativeID="timeInput"
+            style={styles.input}
+            value={newTime}
+            onChangeText={handleTimeChange}
+            placeholder="Enter in AM/PM or military time (07:00)"
+            keyboardType="number-pad"
+            placeholderTextColor="#999"
+            maxLength={5}
+          />
+          {isAmPm && (
+            <View style={styles.buttonRow}>
+          <Pressable
+            style={[styles.secondaryButton,
+                                  timePeriod === 'AM' && styles.secondaryButtonSelected]}
+                  onPress={() => setTimePeriod('AM')}>
+            
+            <Text
+              style={[
+                styles.secondaryButtonText,
+                timePeriod === 'AM' && styles.secondaryButtonSelectedText
+              ]}>
+             AM
+            </Text>
+            
+          </Pressable>
+          <Pressable
+            style={[styles.secondaryButton,
+                timePeriod === 'PM' && styles.secondaryButtonSelected]}
+                onPress={() => setTimePeriod('PM')}>
+            <Text
+              style={[
+                styles.secondaryButtonText,
+                timePeriod === 'PM' && styles.secondaryButtonSelectedText]
+              }>
+             PM
+            </Text>
+            
+          </Pressable>
+            </View>
+          )}
+
+          <Text style={styles.inputLabel}>Label</Text>
+
+          <TextInput
+            style={styles.input}
+            value={newLabel}
+            onChangeText={setNewLabel}
+            placeholder="Wake up"
+            placeholderTextColor="#999"
+          />
+
+          <Text style={styles.inputLabel}>Sound</Text>
+
+          <View style={styles.soundRow}>
+            {sounds.map((sound) => {
+              const selected = newSound === sound.id;
+
+              return (
+                <Pressable
+                  key={sound.id}
+                  style={[
+                    styles.soundOption,
+                    selected && styles.soundOptionSelected,
+                  ]}
+                  onPress={() => setNewSound(sound.id)}>
+                  <Text
+                    style={[
+                      styles.soundOptionText,
+                      selected && styles.soundOptionTextSelected,
+                    ]}>
+                    {sound.name}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <Text style={styles.inputLabel}>Repeat Days</Text>
+
+          <View style={styles.daysSelect}>
+            {POSSIBLE_DAYS.map((day) => {
+              const selected = selectedDays.includes(day);
+
+              return (
+                <Pressable
+                  key={day}
+                  style={[styles.selectDay, selected && styles.selectDayActive]}
+                  onPress={() => toggleSelectedDay(day)}>
+                  <Text
+                    style={[
+                      styles.selectDayText,
+                      selected && styles.selectDayTextActive,
+                    ]}>
+                    {day.substring(0, 3)}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <Pressable
+            style={styles.addButton}
+            onPress={addAlarm}
+            disabled={isSending}>
+            <Text style={styles.addButtonText}>
+              {isSending ? 'Sending...' : 'Add Alarm'}
+            </Text>
+          </Pressable>
+        </View>
+
+        {/* ALARMS */}
+
+        <View style={styles.alarmSection}>
+          <View style={styles.listHeader}>
+            <Text style={styles.sectionTitle}>Your Alarms</Text>
+
+            <Text style={styles.count}>{alarms.length}</Text>
+          </View>
+
+          {alarms.length === 0 ? (
+            <View style={styles.empty}>
+              <Text style={styles.emptyIcon}>⏰☕</Text>
+
+              <Text style={styles.emptyTitle}>No alarms yet</Text>
+
+              <Text style={styles.emptyText}>
+                Create your first alarm above.
+              </Text>
+            </View>
+          ) : (
+            <FlatList
+              data={alarms}
+              renderItem={renderAlarm}
+              keyExtractor={(item) => item.id}
+              scrollEnabled={false}
+            />
+          )}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+// ---------------------------------------
+// Styles
+// ---------------------------------------
+

@@ -146,7 +146,10 @@ const styles = StyleSheet.create({
   },
 
   selectDayTextActive: {
-    color: '#FFFFFF',
+    color: '#FFF'
+  },
+  selectDayActive: {
+    backgroundColor: "#5367DF"
   },
 
   primaryButton: {
@@ -177,6 +180,7 @@ const styles = StyleSheet.create({
 
   secondaryButtonSelected: {
     borderColor: '#5367DF',
+    backgroundColor: '#5367DF'
   },
 
   secondaryButtonText: {
@@ -186,7 +190,7 @@ const styles = StyleSheet.create({
   },
 
   secondaryButtonSelectedText: {
-    color: '#FFFFFF',
+    color: '#FFFFFF'
   },
 
   addButton: {

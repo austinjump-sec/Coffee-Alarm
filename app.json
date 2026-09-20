@@ -25,24 +25,44 @@
         "CHANGE_WIFI_MULTICAST_STATE",
         "WAKE_LOCK",
         "SCHEDULE_EXACT_ALARM",
-        "POST_NOTIFICATIONS"
+        "POST_NOTIFICATIONS",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
       ],
       "package": "com.coffeealarm.app"
     },
     "predictiveBackGestureEnabled": false,
     "extra": {
       "eas": {
-        "projectId": "0cf48221-0c29-4563-a9f3-fb231997eb68"
+        "projectId": "75b99e70-5f01-4cde-aabd-0d30a5e238fa"
       }
-    }
+    },
+    "plugins": [
+      "expo-audio",
+      "expo-alarm-module"
+    ]
   },
   "web": {
     "output": "static",
     "favicon": "./assets/images/favicon.png"
   },
   "plugins": [
+    [
+      "expo-audio",
+      {
+        "enableBackgroundPlayback": true
+      }
+    ],
     "expo-router",
     "expo-notifications",
+    {
+      "sounds": [
+        "./assets/sounds/default.wav",
+        "./assets/sounds/beep.wav"
+      ]
+    },
     [
       "expo-splash-screen",
       {

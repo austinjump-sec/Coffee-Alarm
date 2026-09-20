@@ -20,6 +20,10 @@ import {
 import { Platform } from 'react-native';
 import Zeroconf from 'react-native-zeroconf';
 import styles from '../components/styles.js'
+import * as TaskManager from 'expo-task-manager';
+
+const ALARM_NOTIFICATION_TASK = 'COFFEE_ALARM_NOTIFICATION_TASK';
+
 const zeroconf = new Zeroconf();
 const militaryToAm = Array.from({ length: 24 }, (_, hour) => {
   const period = hour < 12 ? 'AM' : 'PM';
@@ -86,6 +90,7 @@ const DEFAULT_SOUNDS = [
 
 export default function App() {
   const [alarms, setAlarms] = useState([]);
+const [alarmsLoaded, setAlarmsLoaded] = useState(false);
   const [selectedDays, setSelectedDays] = useState([]);
 
   const [newTime, setNewTime] = useState('');
@@ -110,8 +115,38 @@ const beepPlayer = useAudioPlayer(
   require('../../assets/sounds/beep.wav')
 );
 
+useEffect(() => {
+  const registerAlarmTask = async () => {
+    try {
+      await Notifications.registerTaskAsync(
+        ALARM_NOTIFICATION_TASK
+      );
 
+      console.log('Alarm background task registered');
+    } catch (error) {
+      console.error(
+        'Could not register alarm background task:',
+        error
+      );
+    }
+  };
 
+  registerAlarmTask();
+}, []);
+
+const ALARM_NOTIFICATION_TASK = 'COFFEE_ALARM_NOTIFICATION_TASK';
+
+TaskManager.defineTask(
+  ALARM_NOTIFICATION_TASK,
+  async ({ data, error }) => {
+    if (error) {
+      console.error('Alarm background task error:', error);
+      return;
+    }
+
+    console.log('BACKGROUND ALARM:', data);
+  }
+);
 
 useEffect(() => {
   // Notification arrived while the JS app is running.
@@ -182,15 +217,13 @@ const stopAlarmAudio = () => {
     console.error('Could not stop alarm audio:', error);
   }
 };
-
-const startAlarmAudio = (soundId, label = 'CoffeeAlarm') => {
+const startAlarmAudio = async (soundId, label = 'CoffeeAlarm') => {
   try {
     stopAlarmAudio();
 
-    const player =
-      soundId === 'beep'
-        ? beepPlayer
-        : defaultPlayer;
+    const player = soundId === 'beep'
+      ? beepPlayer
+      : defaultPlayer;
 
     player.loop = true;
 
@@ -200,7 +233,7 @@ const startAlarmAudio = (soundId, label = 'CoffeeAlarm') => {
       albumTitle: 'Alarm',
     });
 
-    player.play();
+    await player.play();
 
     console.log(`Alarm audio started: ${soundId}`);
   } catch (error) {
@@ -222,18 +255,20 @@ const stopCurrentAlarm = () => {
  useEffect(() => {
   const setupNotificationChannel = async () => {
     if (Platform.OS === 'android') {
-      await Notifications.setNotificationChannelAsync('alarm-default', {
+await Notifications.setNotificationChannelAsync('alarm-default', {
   name: 'Alarms - Default',
-  importance: Notifications.AndroidImportance.HIGH,
+  importance: Notifications.AndroidImportance.MAX,
   sound: 'default.wav',
   vibrationPattern: [0, 250, 250, 250],
+  bypassDnd: true,
 });
 
 await Notifications.setNotificationChannelAsync('alarm-beep', {
   name: 'Alarms - Beep',
-  importance: Notifications.AndroidImportance.HIGH,
+  importance: Notifications.AndroidImportance.MAX,
   sound: 'beep.wav',
   vibrationPattern: [0, 250, 250, 250],
+  bypassDnd: true,
 });
     }
   };
@@ -261,19 +296,20 @@ const deleteAlarm = async (id) => {
   setAlarms((current) => current.filter((item) => item.id !== id));
   await deleteAlarmFromESP32(id);
 };
-  const scheduleAlarmNotifications = async (alarm) => {
+ const scheduleAlarmNotifications = async (alarm) => {
   if (Platform.OS === 'web') {
     return [];
   }
-  const channelId =
-  alarm.soundId === 'beep'
-    ? 'alarm-beep'
-    : 'alarm-default';
 
-const soundFile =
-  alarm.soundId === 'beep'
-    ? 'beep.wav'
-    : 'default.wav';
+  const channelId =
+    alarm.soundId === 'beep'
+      ? 'alarm-beep'
+      : 'alarm-default';
+
+  const soundFile =
+    alarm.soundId === 'beep'
+      ? 'beep.wav'
+      : 'default.wav';
 
   const notificationIds = [];
 
@@ -286,21 +322,24 @@ const soundFile =
           title: alarm.label,
           body: `${alarm.label} | CoffeeAlarm`,
           sound: soundFile,
-          categoryIdentifier: "alarm",
-          android: {
-            channelId,
-          },
           data: {
             alarmId: alarm.id,
             soundId: alarm.soundId,
           },
         },
+
         trigger: {
           type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
           weekday: weekdayNumbers[day],
           hour,
           minute,
           repeats: true,
+
+          // IMPORTANT
+          channelId,
+
+          // For alarm-clock behavior on supported Expo/Android versions
+          delivery: 'alarmClock',
         },
       });
 
@@ -344,8 +383,22 @@ const requestNotificationPermission = async () => {
   // -----------------------------
 
   useEffect(() => {
-    loadAlarms();
-  }, []);
+  const load = async () => {
+    try {
+      const saved = await AsyncStorage.getItem('alarms');
+
+      if (saved) {
+        setAlarms(JSON.parse(saved));
+      }
+    } catch (error) {
+      console.error('Could not load alarms:', error);
+    } finally {
+      setAlarmsLoaded(true);
+    }
+  };
+
+  load();
+}, []);
 
   
 
@@ -366,8 +419,14 @@ const requestNotificationPermission = async () => {
   // -----------------------------
 
   useEffect(() => {
-    saveAlarms();
-  }, [alarms]);
+  if (!alarmsLoaded) {
+    return;
+  }
+
+  AsyncStorage.setItem('alarms', JSON.stringify(alarms)).catch((error) => {
+    console.error('Could not save alarms:', error);
+  });
+}, [alarms, alarmsLoaded]);
 
   const saveAlarms = async () => {
     try {

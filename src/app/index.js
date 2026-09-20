@@ -116,14 +116,7 @@ const [alarmsLoaded, setAlarmsLoaded] = useState(false);
   const [pendingAlarm, setPendingAlarm] = useState(null);
   const [sounds, setSounds] = useState(DEFAULT_SOUNDS);
   const [value, setValue] = useState('');
-  const defaultPlayer = useAudioPlayer(
-  require('../../assets/sounds/default.wav')
-);
-
-const beepPlayer = useAudioPlayer(
-  require('../../assets/sounds/beep.wav')
-);
-
+ 
 useEffect(() => {
   const registerAlarmTask = async () => {
     try {
@@ -981,54 +974,7 @@ const requestNotificationPermission = async () => {
             placeholderTextColor="#999"
           />
 
-          <Text style={styles.inputLabel}>Sound</Text>
-
-          <View style={styles.soundRow}>
-            {sounds.map((sound) => {
-              const selected = newSound === sound.id;
-
-              return (
-                <Pressable
-                  key={sound.id}
-                  style={[
-                    styles.soundOption,
-                    selected && styles.soundOptionSelected,
-                  ]}
-                  onPress={() => setNewSound(sound.id)}>
-                  <Text
-                    style={[
-                      styles.soundOptionText,
-                      selected && styles.soundOptionTextSelected,
-                    ]}>
-                    {sound.name}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-
-          <Text style={styles.inputLabel}>Repeat Days</Text>
-
-          <View style={styles.daysSelect}>
-            {POSSIBLE_DAYS.map((day) => {
-              const selected = selectedDays.includes(day);
-
-              return (
-                <Pressable
-                  key={day}
-                  style={[styles.selectDay, selected && styles.selectDayActive]}
-                  onPress={() => toggleSelectedDay(day)}>
-                  <Text
-                    style={[
-                      styles.selectDayText,
-                      selected && styles.selectDayTextActive,
-                    ]}>
-                    {day.substring(0, 3)}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
+          
 
           <Pressable
             style={styles.addButton}

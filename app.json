@@ -43,6 +43,12 @@
   "plugins": [
     "expo-router",
     "expo-notifications",
+    {
+    "sounds":[
+       "./assets/sounds/default.wav",
+       "./assets/sounds/beep.wav",
+    ]
+    },
     [
       "expo-splash-screen",
       {

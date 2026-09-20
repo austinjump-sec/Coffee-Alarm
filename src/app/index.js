@@ -13,13 +13,11 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
-import GradientButton from '../components/gradient.js'
-import DeleteButton from '../components/delete.js'
+
 import { Platform } from 'react-native';
 import Zeroconf from 'react-native-zeroconf';
 import {LinearGradient} from 'expo-linear-gradient'
-import styles from './components/styles.js'
-import * as Linking from 'expo-linking';
+import styles from './styles.js'
 const zeroconf = new Zeroconf();
 const militaryToAm = Array.from({ length: 24 }, (_, hour) => {
   const period = hour < 12 ? 'AM' : 'PM';
@@ -34,6 +32,7 @@ Notifications.setNotificationHandler({
     shouldSetBadge: false,
   }),
 });
+
 
 const formatTime = (time, useAmPm) => {
   if (!useAmPm || !/^\d{2}:\d{2}$/.test(time)) {
@@ -73,12 +72,12 @@ const POSSIBLE_DAYS = [
 
 const DEFAULT_SOUNDS = [
   {
-    id: 'beep',
-    name: 'Classic Beep',
+    id: 'default',
+    name: 'Default',
   },
   {
-    id: 'alarm',
-    name: 'Alarm',
+    id: 'beep',
+    name: 'Classic Beep',
   },
 ];
 
@@ -99,7 +98,22 @@ export default function App() {
   const [time, setTime] = useState(false);
   const [sounds, setSounds] = useState(DEFAULT_SOUNDS);
   const [value, setValue] = useState('');
-  
+ useEffect(() => {
+  const setupNotificationChannel = async () => {
+    if (Platform.OS === 'android') {
+      await Notifications.setNotificationChannelAsync('alarm-channel', {
+        name: 'Alarms',
+        importance: Notifications.AndroidImportance.HIGH,
+        sound: 'beep.wav',
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#FF231F71',
+      });
+    }
+  };
+
+  setupNotificationChannel();
+}, []);
+
   const cancelAlarmNotifications = async (alarm) => {
   if (Platform.OS === 'web') {
     return;
@@ -129,13 +143,20 @@ const deleteAlarm = async (id) => {
 
   for (const day of alarm.days) {
     const [hour, minute] = alarm.time.split(':').map(Number);
-
+  const soundFile =
+  alarm.soundId === 'beep'
+    ? 'beep.wav'
+    : 'default';
     const notificationId =
       await Notifications.scheduleNotificationAsync({
         content: {
           title: alarm.label,
-          body: 'Coffee alarm',
-          sound: 'default',
+          body: `${alarm.label} | CoffeeAlarm`,
+          sound: soundFile,
+          categoryIdentifier: "alarm",
+          android: {
+            channelId: "alarm-channel"
+          },
           data: {
             alarmId: alarm.id,
             soundId: alarm.soundId,
@@ -557,15 +578,15 @@ const requestNotificationPermission = async () => {
           })}
         </View>
 
-        <DeleteButton
+        <Pressable
           style={styles.deleteButton}
           onPress={() => deleteAlarm(item.id)}>
             <Text
               style={ styles.deleteText}>
               Delete Alarm
             </Text>
-          )}
-        </DeleteButton>
+          
+        </Pressable>
       </View>
     );
   };
@@ -577,13 +598,10 @@ const requestNotificationPermission = async () => {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.title}>☕ Coffee Alarm</Text>
+        <Text style={styles.title}>☕ CoffeeAlarm</Text>
 
-        <Text style={styles.subtitle}>Have a cup of coffee when you wake!</Text>
        
-<Pressable onPress={() => Linking.openURL('https://example.com')}>
-  <Text>Tutorial on ESP-32 to Espresso machine hookup</Text>
-</Pressable>
+
         {/* ESP32 CONNECTION */}
 
         <View style={styles.connectionCard}>
@@ -609,19 +627,19 @@ const requestNotificationPermission = async () => {
             </View>
           </View>
 
-          <GradientButton
+          <Pressable
             style={styles.primaryButton}
             onPress={scanForESP32}
             disabled={isScanning}>
             <Text style={styles.primaryButtonText}>
               {isScanning ? 'Scanning...' : 'Find ESP32'}
             </Text>
-          </GradientButton>
+          </Pressable>
 
           {esp32 && (
-            <GradientButton style={styles.secondaryButton} onPress={testESP32}>
+            <Pressable style={styles.secondaryButton} onPress={testESP32}>
               <Text style={styles.secondaryButtonText}>Test Connection</Text>
-            </GradientButton>
+            </Pressable>
           )}
         </View>
 
@@ -629,7 +647,7 @@ const requestNotificationPermission = async () => {
         <View style={styles.buttonRow}>
          
 
-          <GradientButton
+          <Pressable
             style={[
               styles.secondaryButton,
               isAmPm && styles.secondaryButtonSelected,
@@ -645,8 +663,8 @@ const requestNotificationPermission = async () => {
               ]}>
               AM/PM Time
             </Text>
-          </GradientButton>
-           <GradientButton
+          </Pressable>
+           <Pressable
             style={[
               styles.secondaryButton,
               isMilitary && styles.secondaryButtonSelected,
@@ -662,7 +680,7 @@ const requestNotificationPermission = async () => {
               ]}>
               Military Time 
             </Text>
-          </GradientButton>
+          </Pressable>
         </View>
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>New Alarm</Text>
@@ -681,9 +699,9 @@ const requestNotificationPermission = async () => {
           />
           {isAmPm && (
             <View style={styles.buttonRow}>
-          <GradientButton
-            style={[styles.secondaryButton,
-                                  timePeriod === 'AM' && styles.secondaryButtonSelected]}
+          <Pressable
+            style={[styles.soundOption,
+                                  timePeriod === 'AM' && styles.soundOptionSelected]}
                   onPress={() => setTimePeriod('AM')}>
             
             <Text
@@ -694,10 +712,10 @@ const requestNotificationPermission = async () => {
              AM
             </Text>
             
-          </GradientButton>
-          <GradientButton
-            style={[styles.secondaryButton,
-                timePeriod === 'PM' && styles.secondaryButtonSelected]}
+          </Pressable>
+          <Pressable
+            style={[styles.soundOption,
+                timePeriod === 'PM' && styles.soundOptionSelected]}
                 onPress={() => setTimePeriod('PM')}>
             <Text
               style={[
@@ -707,7 +725,7 @@ const requestNotificationPermission = async () => {
              PM
             </Text>
             
-          </GradientButton>
+          </Pressable>
             </View>
           )}
 
@@ -728,7 +746,7 @@ const requestNotificationPermission = async () => {
               const selected = newSound === sound.id;
 
               return (
-                <GradientButton
+                <Pressable
                   key={sound.id}
                   style={[
                     styles.soundOption,
@@ -742,7 +760,7 @@ const requestNotificationPermission = async () => {
                     ]}>
                     {sound.name}
                   </Text>
-                </GradientButton>
+                </Pressable>
               );
             })}
           </View>
@@ -754,7 +772,7 @@ const requestNotificationPermission = async () => {
               const selected = selectedDays.includes(day);
 
               return (
-                <GradientButton
+                <Pressable
                   key={day}
                   style={[styles.selectDay, selected && styles.selectDayActive]}
                   onPress={() => toggleSelectedDay(day)}>
@@ -765,19 +783,19 @@ const requestNotificationPermission = async () => {
                     ]}>
                     {day.substring(0, 3)}
                   </Text>
-                </GradientButton>
+                </Pressable>
               );
             })}
           </View>
 
-          <GradientButton
+          <Pressable
             style={styles.addButton}
             onPress={addAlarm}
             disabled={isSending}>
             <Text style={styles.addButtonText}>
               {isSending ? 'Sending...' : 'Add Alarm'}
             </Text>
-          </GradientButton>
+          </Pressable>
         </View>
 
         {/* ALARMS */}
@@ -813,7 +831,4 @@ const requestNotificationPermission = async () => {
   );
 }
 
-// ---------------------------------------
-// Styles
-// ---------------------------------------
 

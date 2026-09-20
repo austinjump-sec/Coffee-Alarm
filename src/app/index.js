@@ -13,6 +13,15 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
+import { scheduleAlarm, removeAlarm, stopAlarm } from 'expo-alarm-module';
+
+const nextOccurrence = (dayName, hour, minute) => {
+  const d = new Date();
+  d.setHours(hour, minute, 0, 0);
+  d.setDate(d.getDate() + ((POSSIBLE_DAYS.indexOf(dayName) - d.getDay() + 7) % 7));
+  if (d <= new Date()) d.setDate(d.getDate() + 7);
+  return d;
+};
 import {
   useAudioPlayer,
   setAudioModeAsync,
@@ -244,6 +253,7 @@ const startAlarmAudio = async (soundId, label = 'CoffeeAlarm') => {
 const stopCurrentAlarm = () => {
   stopAlarmAudio();
   setPendingAlarm(null);
+  stopAlarm()
 };
 
 
@@ -281,9 +291,10 @@ await Notifications.setNotificationChannelAsync('alarm-beep', {
     return;
   }
 
-  for (const notificationId of alarm.notificationIds || []) {
-    await Notifications.cancelScheduledNotificationAsync(notificationId);
-  }
+  for (const id of alarm.notificationIds || []) {
+  if (Platform.OS === 'android') removeAlarm(id);
+  else await Notifications.cancelScheduledNotificationAsync(id);
+}
 };
 
 const deleteAlarm = async (id) => {
@@ -300,6 +311,26 @@ const deleteAlarm = async (id) => {
   if (Platform.OS === 'web') {
     return [];
   }
+  if (Platform.OS === 'android') {
+  const [hour, minute] = alarm.time.split(':').map(Number);
+  const ids = [];
+  for (const day of alarm.days) {
+    const uid = `${alarm.id}-${day}`;
+    await scheduleAlarm({
+      uid,
+      day: nextOccurrence(day, hour, minute),
+      title: alarm.label,
+      description: 'CoffeeAlarm',
+      showDismiss: true,
+      showSnooze: false,
+      snoozeInterval: 5,
+      repeating: true,
+      active: true,
+    });
+    ids.push(uid);
+  }
+  return ids;
+}
 
   const channelId =
     alarm.soundId === 'beep'

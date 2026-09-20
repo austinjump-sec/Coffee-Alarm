@@ -40,7 +40,8 @@
       }
     },
     "plugins": [
-      "expo-audio"
+      "expo-audio",
+      "expo-alarm-module"
     ]
   },
   "web": {

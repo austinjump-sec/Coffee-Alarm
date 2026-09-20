@@ -18,7 +18,7 @@ import DeleteButton from '../components/delete.js'
 import { Platform } from 'react-native';
 import Zeroconf from 'react-native-zeroconf';
 import {LinearGradient} from 'expo-linear-gradient'
-import styles from './styles.js'
+import styles from './components/styles.js'
 import * as Linking from 'expo-linking';
 const zeroconf = new Zeroconf();
 const militaryToAm = Array.from({ length: 24 }, (_, hour) => {

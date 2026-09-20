@@ -13,17 +13,20 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
-
+import {
+  useAudioPlayer,
+  setAudioModeAsync,
+} from 'expo-audio';
 import { Platform } from 'react-native';
 import Zeroconf from 'react-native-zeroconf';
-import {LinearGradient} from 'expo-linear-gradient'
-import styles from './styles.js'
+import styles from '../components/styles.js'
 const zeroconf = new Zeroconf();
 const militaryToAm = Array.from({ length: 24 }, (_, hour) => {
   const period = hour < 12 ? 'AM' : 'PM';
   const displayHour = hour % 12 || 12;
   return [String(hour).padStart(2, '0'), `${displayHour}:${period}`];
 });
+
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowBanner: true,
@@ -96,18 +99,142 @@ export default function App() {
   const [isAmPm, setAmPm] = useState(true);
   const [timePeriod, setTimePeriod] = useState('AM');
   const [time, setTime] = useState(false);
+  const [pendingAlarm, setPendingAlarm] = useState(null);
   const [sounds, setSounds] = useState(DEFAULT_SOUNDS);
   const [value, setValue] = useState('');
+  const defaultPlayer = useAudioPlayer(
+  require('../../assets/sounds/default.wav')
+);
+
+const beepPlayer = useAudioPlayer(
+  require('../../assets/sounds/beep.wav')
+);
+
+
+
+
+useEffect(() => {
+  // Notification arrived while the JS app is running.
+  const receivedSubscription =
+    Notifications.addNotificationReceivedListener((notification) => {
+      const data = notification.request.content.data;
+
+      console.log('Alarm notification received:', data);
+
+      if (data?.alarmId) {
+        startAlarmAudio(
+          data.soundId,
+          notification.request.content.title || 'CoffeeAlarm'
+        );
+      }
+    });
+
+  // User tapped the notification.
+  const responseSubscription =
+    Notifications.addNotificationResponseReceivedListener((response) => {
+      const data = response.notification.request.content.data;
+
+      console.log('Alarm notification tapped:', data);
+
+      if (data?.alarmId) {
+        stopAlarmAudio();
+        setPendingAlarm(null);
+      }
+    });
+
+  return () => {
+    receivedSubscription.remove();
+    responseSubscription.remove();
+  };
+}, []);
+useEffect(() => {
+  if (!pendingAlarm) {
+    return;
+  }
+
+  startAlarmAudio(pendingAlarm.soundId);
+}, [pendingAlarm]);
+  useEffect(() => {
+  const configureAudio = async () => {
+    try {
+      await setAudioModeAsync({
+        playsInSilentMode: true,
+        shouldPlayInBackground: true,
+        interruptionMode: 'doNotMix',
+      });
+    } catch (error) {
+      console.error('Could not configure alarm audio:', error);
+    }
+  };
+
+  configureAudio();
+}, []);
+
+
+const stopAlarmAudio = () => {
+  try {
+    defaultPlayer.pause();
+    beepPlayer.pause();
+
+    defaultPlayer.seekTo(0);
+    beepPlayer.seekTo(0);
+  } catch (error) {
+    console.error('Could not stop alarm audio:', error);
+  }
+};
+
+const startAlarmAudio = (soundId, label = 'CoffeeAlarm') => {
+  try {
+    stopAlarmAudio();
+
+    const player =
+      soundId === 'beep'
+        ? beepPlayer
+        : defaultPlayer;
+
+    player.loop = true;
+
+    player.setActiveForLockScreen(true, {
+      title: label,
+      artist: 'CoffeeAlarm',
+      albumTitle: 'Alarm',
+    });
+
+    player.play();
+
+    console.log(`Alarm audio started: ${soundId}`);
+  } catch (error) {
+    console.error('Could not start alarm audio:', error);
+  }
+};
+
+const stopCurrentAlarm = () => {
+  stopAlarmAudio();
+  setPendingAlarm(null);
+};
+
+
+
+  const getNotificationChannel = (soundId) =>
+  soundId === 'beep'
+    ? 'alarm-beep'
+    : 'alarm-default';
  useEffect(() => {
   const setupNotificationChannel = async () => {
     if (Platform.OS === 'android') {
-      await Notifications.setNotificationChannelAsync('alarm-channel', {
-        name: 'Alarms',
-        importance: Notifications.AndroidImportance.HIGH,
-        sound: 'beep.wav',
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: '#FF231F71',
-      });
+      await Notifications.setNotificationChannelAsync('alarm-default', {
+  name: 'Alarms - Default',
+  importance: Notifications.AndroidImportance.HIGH,
+  sound: 'default.wav',
+  vibrationPattern: [0, 250, 250, 250],
+});
+
+await Notifications.setNotificationChannelAsync('alarm-beep', {
+  name: 'Alarms - Beep',
+  importance: Notifications.AndroidImportance.HIGH,
+  sound: 'beep.wav',
+  vibrationPattern: [0, 250, 250, 250],
+});
     }
   };
 
@@ -138,15 +265,21 @@ const deleteAlarm = async (id) => {
   if (Platform.OS === 'web') {
     return [];
   }
+  const channelId =
+  alarm.soundId === 'beep'
+    ? 'alarm-beep'
+    : 'alarm-default';
+
+const soundFile =
+  alarm.soundId === 'beep'
+    ? 'beep.wav'
+    : 'default.wav';
 
   const notificationIds = [];
 
   for (const day of alarm.days) {
     const [hour, minute] = alarm.time.split(':').map(Number);
-  const soundFile =
-  alarm.soundId === 'beep'
-    ? 'beep.wav'
-    : 'default';
+
     const notificationId =
       await Notifications.scheduleNotificationAsync({
         content: {
@@ -155,7 +288,7 @@ const deleteAlarm = async (id) => {
           sound: soundFile,
           categoryIdentifier: "alarm",
           android: {
-            channelId: "alarm-channel"
+            channelId,
           },
           data: {
             alarmId: alarm.id,
@@ -505,29 +638,48 @@ const requestNotificationPermission = async () => {
   // Enable / disable alarm
   // -----------------------------
 
-  const toggleAlarm = async (id) => {
-    const alarm = alarms.find((item) => item.id === id);
+ const toggleAlarm = async (id) => {
+  const alarm = alarms.find((item) => item.id === id);
 
-    if (!alarm) {
-      return;
-    }
-    if (alarm.enabled){
-    await cancelAlarmNotifications(alarm)
-    }
+  if (!alarm) {
+    return;
+  }
+
+  if (alarm.enabled) {
+    await cancelAlarmNotifications(alarm);
 
     const changedAlarm = {
       ...alarm,
-      enabled: !alarm.enabled,
+      enabled: false,
+      notificationIds: [],
     };
-     changedAlarm.notificationIds =
-    await scheduleAlarmNotifications(changedAlarm);
 
     setAlarms((current) =>
-      current.map((item) => (item.id === id ? changedAlarm : item))
+      current.map((item) =>
+        item.id === id ? changedAlarm : item
+      )
     );
 
     await sendAlarmToESP32(changedAlarm);
+    return;
+  }
+
+  const changedAlarm = {
+    ...alarm,
+    enabled: true,
   };
+
+  changedAlarm.notificationIds =
+    await scheduleAlarmNotifications(changedAlarm);
+
+  setAlarms((current) =>
+    current.map((item) =>
+      item.id === id ? changedAlarm : item
+    )
+  );
+
+  await sendAlarmToESP32(changedAlarm);
+};
 
   // -----------------------------
   // Render alarm

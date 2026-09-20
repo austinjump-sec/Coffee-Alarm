@@ -79,6 +79,7 @@ npm install
 npx expo start
 ```
 
+
 For a local Android development build:
 
 ```bash
@@ -91,7 +92,7 @@ The app requests network discovery/network access, notifications, wake-lock, and
 
 A prebuilt APK is available from the repository's configured Expo artifact link:
 
-[Download the CoffeeAlarm APK](https://expo.dev/artifacts/eas/fbFIJqWP3GtbRMuxBJOmm2s8FmLmjqDcZ4kWxdgbBLg.apk)
+[Download the CoffeeAlarm APK](https://expo.dev/artifacts/eas/AUrD5813y2DZ1YpFQXqDB8TWh2s699LNUR9zFa4-2SY.apk))
 
 To install it on an Android phone:
 

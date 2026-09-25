@@ -92,7 +92,7 @@ The app requests network discovery/network access, notifications, wake-lock, and
 
 A prebuilt APK is available from the repository's configured Expo artifact link:
 
-[Download the CoffeeAlarm APK](https://expo.dev/artifacts/eas/rHy7J7QXuJia8CB1eJuuadn0WWTIHnKJCNr_F6zF-2s.apk))
+[Download the CoffeeAlarm APK](https://expo.dev/artifacts/eas/arxVxL6hMK15unqnzZw_DOGovkMfOHk7Wss0KLwrFiY.apk)
 
 To install it on an Android phone:
 

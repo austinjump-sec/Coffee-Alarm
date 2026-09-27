@@ -4,19 +4,19 @@
     "slug": "CoffeeAlarm",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/logo.png",
+    "icon": "./assets/images/logo2.png",
     "scheme": "coffeealarm",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon",
+      "icon": "./assets/images/logo2.png",
       "bundleIdentifier": "com.coffeealarm.app"
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/logo.png",
-        "backgroundImage": "./assets/images/logo.png",
-        "monochromeImage": "./assets/images/logo.png"
+        "foregroundImage": "./assets/images/logo2.png",
+        "backgroundImage": "./assets/images/logo2.png",
+        "monochromeImage": "./assets/images/logo2.png"
       },
       "permissions": [
         "INTERNET",
@@ -46,7 +46,7 @@
   },
   "web": {
     "output": "static",
-    "favicon": "./assets/images/logo.png"
+    "favicon": "./assets/images/logo2.png"
   },
   "plugins": [
     [
@@ -67,7 +67,7 @@
       "expo-splash-screen",
       {
         "backgroundColor": "#208AEF",
-        "image": "./assets/images/logo.png",
+        "image": "./assets/images/logo2.png",
         "imageWidth": 76
       }
     ]

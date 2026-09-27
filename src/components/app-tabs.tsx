@@ -1,35 +1,30 @@
-import { Tabs } from 'expo-router';
+import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import { useColorScheme } from 'react-native';
 
-import { Colors } from '@/constants/theme';
+import Home from '@/app/index';
+import Explore from '@/app/explore';
+
+const Tab = createMaterialTopTabNavigator();
 
 export default function AppTabs() {
   const scheme = useColorScheme();
-  const colors = Colors[scheme === 'dark' ? 'dark' : 'light'];
 
   return (
-    <Tabs
+    <Tab.Navigator
       screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: colors.text,
-        tabBarInactiveTintColor: colors.icon,
-        tabBarStyle: {
-          backgroundColor: colors.background,
-        },
-      }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-        }}
+        swipeEnabled: true,
+        tabBarShowLabel: true,
+      }}
+    >
+      <Tab.Screen 
+        name="Home"
+        component={Home}
       />
 
-      <Tabs.Screen
-        name="explore"
-        options={{
-          title: 'Explore',
-        }}
+      <Tab.Screen
+        name="Explore"
+        component={Explore}
       />
-    </Tabs>
+    </Tab.Navigator>
   );
 }

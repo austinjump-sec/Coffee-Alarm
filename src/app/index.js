@@ -715,7 +715,11 @@ export default function App() {
         <Pressable
           accessibilityLabel="Open dashboard"
           style={styles.menuButton}
-          onPress={() => setIsDashboardOpen(true)}>
+          onPress={() =>{
+          setIsDashboardOpen(true);
+          Alert.alert("Btn pressed");
+          }
+          }>
           <Text style={styles.menuButtonText}>☰</Text>
         </Pressable>
 
@@ -1103,7 +1107,7 @@ export default function App() {
                     value={requestTimeout}
                     onChangeText={(text) => {
                       const value = text.replace(/\D/g, '');
-                      setRequestTimeout(Number(text));
+                      setRequestTimeout(Number(value));
                     }}
                     placeholder="Add Request Timeout in ms"
                   />

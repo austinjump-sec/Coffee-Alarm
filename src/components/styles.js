@@ -54,10 +54,8 @@ const styles = StyleSheet.create({
   },
 
   dashboardOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 1000,
-    elevation: 100,
-    flexDirection: 'row',
+     flex:1,
+     backgroundColor:"rgba(0,0,0,0.35)",
   },
 
   dashboardBackdrop: {

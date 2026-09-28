@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Modal,
-  PanResponder,
   FlatList,
   Linking,
   Platform,
@@ -983,7 +982,6 @@ export default function App() {
       <Modal
   visible={isDashboardOpen}
   transparent
-  animationType="slide"
   onRequestClose={() => setIsDashboardOpen(false)}>
   <View style={styles.dashboardOverlay}>
     <Pressable
@@ -991,13 +989,7 @@ export default function App() {
       style={styles.dashboardBackdrop}
       onPress={() => setIsDashboardOpen(false)}
     />
-    <View style={styles.dashboard}>
-        <View style={styles.dashboardOverlay}>
-          <Pressable
-            accessibilityLabel="Close dashboard"
-            style={styles.dashboardBackdrop}
-            onPress={() => setIsDashboardOpen(false)}
-          />
+
           <View style={styles.dashboard}>
             <View style={styles.dashboardHeader}>
               <Text style={styles.dashboardTitle}>Advanced Settings</Text>
@@ -1213,8 +1205,8 @@ export default function App() {
                 </View>
               </View>
             </ScrollView>
-          </View>
-        </View>
+          
+        
     </View>
   </View>
 </Modal>

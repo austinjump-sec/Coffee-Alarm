@@ -720,7 +720,7 @@ export default function App() {
           console.log("pressed")
           }
           }>
-          <Text style={styles.menuButtonText}>☰</Text>
+          <Text style={styles.menuButtonText}>=</Text>
         </Pressable>
 
         <ScrollView contentContainerStyle={styles.scrollContent}
@@ -980,7 +980,18 @@ export default function App() {
       </Modal>
 
       {/* Dashboard Overlay */}
-      {isDashboardOpen && (
+      <Modal
+  visible={isDashboardOpen}
+  transparent
+  animationType="slide"
+  onRequestClose={() => setIsDashboardOpen(false)}>
+  <View style={styles.dashboardOverlay}>
+    <Pressable
+      accessibilityLabel="Close dashboard"
+      style={styles.dashboardBackdrop}
+      onPress={() => setIsDashboardOpen(false)}
+    />
+    <View style={styles.dashboard}>
         <View style={styles.dashboardOverlay}>
           <Pressable
             accessibilityLabel="Close dashboard"
@@ -997,7 +1008,6 @@ export default function App() {
               </Pressable>
             </View>
 
-            {/* Dashboard contents */}
             <ScrollView
               style={styles.dashboardContent}
               showsVerticalScrollIndicator={false}
@@ -1205,7 +1215,11 @@ export default function App() {
             </ScrollView>
           </View>
         </View>
-      )}
+    </View>
+  </View>
+</Modal>
+      
+      
     </View>
   );
 }

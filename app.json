@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "CoffeeAlarm",
-    "slug": "CoffeeAlarm",
+    "slug": "coffee-alarm",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/logo2.png",
@@ -36,7 +36,7 @@
     "predictiveBackGestureEnabled": false,
     "extra": {
       "eas": {
-        "projectId": "75b99e70-5f01-4cde-aabd-0d30a5e238fa"
+        "projectId": "254df31d-925e-4800-8798-86d0b6f8a904"
       }
     },
     "plugins": [

@@ -28,7 +28,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 12,
     left: 18,
-    zIndex: 200000000,
+    zIndex: 20000,
     elevation: 80,
     width: 42,
     marginTop: 25,
@@ -55,7 +55,8 @@ const styles = StyleSheet.create({
 
   dashboardOverlay: {
     ...StyleSheet.absoluteFillObject,
-    zIndex: 10,
+    zIndex: 1000,
+    elevation: 100,
     flexDirection: 'row',
   },
 

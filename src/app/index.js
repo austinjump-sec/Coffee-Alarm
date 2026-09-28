@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Modal,
-  PanResponder,
   FlatList,
   Linking,
   Platform,
@@ -717,10 +716,10 @@ export default function App() {
           style={styles.menuButton}
           onPress={() =>{
           setIsDashboardOpen(true);
-          Alert.alert("Btn pressed");
+          console.log("pressed")
           }
           }>
-          <Text style={styles.menuButtonText}>☰</Text>
+          <Text style={styles.menuButtonText}>=</Text>
         </Pressable>
 
         <ScrollView contentContainerStyle={styles.scrollContent}
@@ -980,13 +979,17 @@ export default function App() {
       </Modal>
 
       {/* Dashboard Overlay */}
-      {isDashboardOpen && (
-        <View style={styles.dashboardOverlay}>
-          <Pressable
-            accessibilityLabel="Close dashboard"
-            style={styles.dashboardBackdrop}
-            onPress={() => setIsDashboardOpen(false)}
-          />
+      <Modal
+  visible={isDashboardOpen}
+  transparent
+  onRequestClose={() => setIsDashboardOpen(false)}>
+  <View style={styles.dashboardOverlay}>
+    <Pressable
+      accessibilityLabel="Close dashboard"
+      style={styles.dashboardBackdrop}
+      onPress={() => setIsDashboardOpen(false)}
+    />
+
           <View style={styles.dashboard}>
             <View style={styles.dashboardHeader}>
               <Text style={styles.dashboardTitle}>Advanced Settings</Text>
@@ -997,7 +1000,6 @@ export default function App() {
               </Pressable>
             </View>
 
-            {/* Dashboard contents */}
             <ScrollView
               style={styles.dashboardContent}
               showsVerticalScrollIndicator={false}
@@ -1203,9 +1205,14 @@ export default function App() {
                 </View>
               </View>
             </ScrollView>
-          </View>
-        </View>
-      )}
+          
+        
+    </View>
+  </View>
+</Modal>
+      
+      
     </View>
   );
 }
+

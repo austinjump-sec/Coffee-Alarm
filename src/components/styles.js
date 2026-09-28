@@ -28,7 +28,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 12,
     left: 18,
-    zIndex: 200000000,
+    zIndex: 20000,
     elevation: 80,
     width: 42,
     marginTop: 25,
@@ -45,8 +45,8 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '700',  
     textAlign: 'center',
-  includeFontPadding: false,  // <-- Critical for mobile
-  textAlignVertical: 'center',
+    includeFontPadding: false,  // <-- Critical for mobile
+    textAlignVertical: 'center',
   },
 
   menuButtonSpacer: {
@@ -54,9 +54,8 @@ const styles = StyleSheet.create({
   },
 
   dashboardOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 10,
-    flexDirection: 'row',
+     flex:1,
+     backgroundColor:"rgba(0,0,0,0.35)",
   },
 
   dashboardBackdrop: {
@@ -70,8 +69,8 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     left: 0,
-    width: '82%',
-    maxWidth: 360,
+    width: '85%',
+    maxWidth: 320,
     backgroundColor: '#FFFDF9',
     paddingTop: 55,
     paddingHorizontal: 20,
@@ -107,7 +106,8 @@ const styles = StyleSheet.create({
 
   dashboardContent: {
     flex: 1,
-    paddingTop: 20,
+    paddingTop: 15,
+    paddingHorizontal: 12
   },
 
   dashboardSection: {
@@ -171,6 +171,7 @@ const styles = StyleSheet.create({
     padding: 18,
     borderRadius: 18,
     backgroundColor: '#FFFDF9',
+    overflow: 'hidden',
   },
 
   infoModalTitle: {
@@ -191,7 +192,8 @@ const styles = StyleSheet.create({
   infoModalText: {
     color: '#6D5143',
     fontSize: 13,
-    lineHeight: 18,
+    lineHeight: 20,
+    includeFontPadding: false,
   },
 
   githubLink: {
@@ -601,7 +603,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 5,
   },
-   
+    
   emptyText: {
     color: '#967D6D',
     marginTop: 5,

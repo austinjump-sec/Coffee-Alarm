@@ -76,8 +76,7 @@ The ESP32 firmware includes configurable settings for Wi-Fi, mDNS service advert
 
 The firmware repository includes example template implementations for different actuator types. These are **untested** and provided as reference starting points:
 
-- **`servo_actuator.cpp`** (default): Uses a standard servo motor (e.g., SG90) to physically press the button. This is the recommended and safest approach for most coffee machines.
-- **`motor_actuator.cpp`**: Uses a continuous-rotation motor or geared motor to press the button. Requires a servo motor or additional mechanical linkage and is more complex to integrate.
+- **`motor_actuator.cpp`** (safest, easiest): Uses a standard servo motor (e.g., SG90) to physically press the button. This is the recommended and safest approach for most coffee machines.
 - **`electrical_actuator.cpp`**: Uses a relay or solenoid to trigger an electrical pulse on the coffee machine button circuit. **⚠️ More dangerous:** requires knowledge of your machine's electrical schematic, isolation from high voltage, and proper relay sizing. Use only if you fully understand the electrical circuit and can ensure safe isolation.
 
 Choose the template that matches your hardware, review the implementation, and test thoroughly before deploying to your coffee machine.

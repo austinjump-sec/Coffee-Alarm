@@ -13,57 +13,26 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { scheduleAlarm, removeAlarm } from 'expo-alarm-module';
-
-const nextOccurrence = (dayName, hour, minute) => {
-  const d = new Date();
-  d.setHours(hour, minute, 0, 0);
-  d.setDate(
-    d.getDate() + ((POSSIBLE_DAYS.indexOf(dayName) - d.getDay() + 7) % 7)
-  );
-  if (d <= new Date()) d.setDate(d.getDate() + 7);
-  return d;
-};
 
 import Zeroconf from 'react-native-zeroconf';
 import styles from '../components/styles.js';
 
-const zeroconf = new Zeroconf();
-const SETTINGS_STORAGE_KEY = 'coffeeAlarmSettings';
-const militaryToAm = Array.from({ length: 24 }, (_, hour) => {
-  const period = hour < 12 ? 'AM' : 'PM';
-  const displayHour = hour % 12 || 12;
-  return [String(hour).padStart(2, '0'), `${displayHour}:${period}`];
-});
 
-const formatTime = (time, useAmPm) => {
-  if (!useAmPm || !/^\d{2}:\d{2}$/.test(time)) {
-    return time;
-  }
 
-  const [hourText, minutes] = time.split(':');
-  const hour = Number(hourText);
-  const tableEntry = militaryToAm[hour];
 
-  if (!tableEntry) {
-    return time;
-  }
 
-  return `${tableEntry[1].replace(':', `:${minutes} `)}`;
-};
 
-const POSSIBLE_DAYS = [
-  'Sunday',
-  'Monday',
-  'Tuesday',
-  'Wednesday',
-  'Thursday',
-  'Friday',
-  'Saturday',
-];
+
 
 export default function App() {
+
+//------------------------------
+//Default States/Initalizations
+//------------------------------
+
   const [alarms, setAlarms] = useState([]);
   const [alarmsLoaded, setAlarmsLoaded] = useState(false);
   const [defaultAlarmDays, setDefaultAlarmDays] = useState([
@@ -84,7 +53,6 @@ export default function App() {
   const [address, setAddress] = useState('alarm-esp32');
   const [requestTimeout, setRequestTimeout] = useState(5000);
   const [expandedAlarmId, setExpandedAlarmId] = useState(null);
-
   const [api, setApi] = useState('/alarms');
   const [arg, setArg] = useState('Coffee');
   const [val, setVal] = useState('Brew');
@@ -102,9 +70,38 @@ export default function App() {
   const [isJsonArgumentInfoOpen, setIsJsonArgumentInfoOpen] = useState(false);
   const [isEsp32InfoOpen, setIsEsp32InfoOpen] = useState(false);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
+  const [snooze, setSnooze] = useState(true)
   const dashboardStartX = useRef(0);
 
 
+const POSSIBLE_DAYS = [
+  'Sunday',
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+];
+
+  const channelIdSilent = "coffee-alarm-silent"
+  const channelIdVibr = "coffee-alarm-vibrate"
+
+  const zeroconf = new Zeroconf();
+  const SETTINGS_STORAGE_KEY = 'coffeeAlarmSettings';
+
+  const nextOccurrence = (dayName, hour, minute) => {
+  const d = new Date();
+  d.setHours(hour, minute, 0, 0);
+  d.setDate(
+    d.getDate() + ((POSSIBLE_DAYS.indexOf(dayName) - d.getDay() + 7) % 7)
+  );
+  if (d <= new Date()) d.setDate(d.getDate() + 7);
+  return d;
+};
+ //-----------------
+ //Alarm Management
+ //-----------------
 
   const cancelAlarmNotifications = async (alarm) => {
     if (Platform.OS !== 'android') {
@@ -127,7 +124,6 @@ export default function App() {
     await deleteAlarmFromESP32(id);
   };
   const scheduleAlarmNotifications = async (alarm) => {
-    // Alarms are intentionally supported only on Android.
     if (Platform.OS !== 'android') {
       return [];
     }
@@ -143,9 +139,10 @@ export default function App() {
         day: nextOccurrence(day, hour, minute),
         title: alarm.label,
         description: 'CoffeeAlarm',
+        channelId: alarm.vibrate ? 'coffee-alarm-vibrate' : 'coffee-alarm-silent',
         vibrate: alarm.vibrate !== false,
         showDismiss: true,
-        showSnooze: true,
+        showSnooze: alarm.snooze !== false,
         snoozeInterval: 300,
         repeating: true,
         active: true,
@@ -156,7 +153,9 @@ export default function App() {
 
     return ids;
   };
-
+  //--------------
+ //Time formatting
+ //----------------
   const handleTimeChange = (text) => {
     const digits = text.replace(/\D/g, '').slice(0, 4);
     let formattedVal = digits;
@@ -169,11 +168,64 @@ export default function App() {
 
     setNewTime(formattedVal);
   };
+  const formatTime = (time, useAmPm) => {
+  if (!useAmPm || !/^\d{2}:\d{2}$/.test(time)) {
+    return time;
+  }
+  
+  const [hourText, minutes] = time.split(':');
+  const hour = Number(hourText);
+  const tableEntry = militaryToAm[hour];
 
+  if (!tableEntry) {
+    return time;
+  }
+
+  return `${tableEntry[1].replace(':', `:${minutes} `)}`;
+};
+const militaryToAm = Array.from({ length: 24 }, (_, hour) => {
+  const period = hour < 12 ? 'AM' : 'PM';
+  const displayHour = hour % 12 || 12;
+  return [String(hour).padStart(2, '0'), `${displayHour}:${period}`];
+});
+  //------------------------------
+  //Notification Channel Creation
+  //------------------------------
+  useEffect(() => {
+    const setupNotifications = async () => {
+    if (Platform.OS !== 'android'){
+      return
+    }
+    //Seperate Channel for Silent
+    await Notifications.setNotificationChannelAsync(channelIdSilent, {
+     name: "Coffee Alarm",
+     description: "Notifications for CoffeeAlarm",
+     importance: Notifications.AndroidImportance.MAX,
+     vibrationPattern: [],
+     sound: 'default',
+     lockscreenVisibility: 
+        Notifications.AndroidNotificationVisibility.PUBLIC,
+
+    })    
+    //Channel for Vibration
+    await Notifications.setNotificationChannelAsync(channelIdVibr, {
+     name: "Coffee Alarm",
+     description: "Notifications for CofeeAlarm",
+     importance: Notifications.AndroidImportance.MAX,
+     vibrationPattern: [0, 500, 250, 200],
+     sound: 'default',
+     lockscreenVisibility: 
+        Notifications.AndroidNotificationVisibility.PUBLIC,
+
+    })
+
+    }
+    setupNotifications()
+  }, [])
   // -----------------------------
   // Load alarms
   // -----------------------------
-
+    
   useEffect(() => {
     const load = async () => {
       try {
@@ -218,7 +270,7 @@ export default function App() {
   }, []);
 
   // -----------------------------
-  // Save settings across the application
+  // Save settings globally
   // -----------------------------
 
   useEffect(() => {
@@ -230,6 +282,7 @@ export default function App() {
       address,
       defaultAlarmDays,
       vibrate,
+      snooze,
       requestTimeout,
       api,
       arg,
@@ -247,6 +300,7 @@ export default function App() {
     address,
     defaultAlarmDays,
     vibrate,
+    snooze,
     requestTimeout,
     api,
     arg,
@@ -510,9 +564,12 @@ export default function App() {
       label: newLabel.trim() || 'Alarm',
       enabled: true,
       vibrate,
+      snooze,
       timeout: requestTimeout,
       days: selectedDays,
+      custom: {
       [arg]: val,
+      },
       notificationIds: [],
     };
 
@@ -535,10 +592,10 @@ export default function App() {
   };
 
   // -----------------------------
-  // Enable / disable alarm
+  // Enable / disable alarms, vibration, and snooze
   // -----------------------------
-
-  const toggleAlarmVibration = async (id) => {
+ 
+  const toggleAlarmEdit = async (id, property) => {
     const alarm = alarms.find((item) => item.id === id);
 
     if (!alarm) {
@@ -549,7 +606,7 @@ export default function App() {
 
     const changedAlarm = {
       ...alarm,
-      vibrate: alarm.vibrate === false,
+      [property]: !alarm[property],
       notificationIds: [],
     };
 
@@ -621,6 +678,8 @@ export default function App() {
       timeout: item.timeout,
       days: item.days,
       vibrate: item.vibrate,
+      snooze: item.snooze,
+      ...(item.custom || {}),
     };
 
     return (
@@ -634,7 +693,8 @@ export default function App() {
             <Text style={styles.alarmLabel}>{item.label}</Text>
 
             <Text style={styles.alarmOptionText}>
-              Vibration: {item.vibrate !== false ? 'On' : 'Off'}
+              Vibration: {item.vibrate !== false ? 'On' : 'Off'} {'\n'}
+              Snooze: {item.snooze !== false ? 'On' : 'Off'}
             </Text>
           </View>
 
@@ -643,7 +703,14 @@ export default function App() {
               <Text style={styles.switchLabel}>Vibrate</Text>
               <Switch
                 value={item.vibrate !== false}
-                onValueChange={() => toggleAlarmVibration(item.id)}
+                onValueChange={() => toggleAlarmEdit(item.id, 'vibrate')}
+              />
+            </View>
+             <View style={styles.alarmSwitchRow}>
+              <Text style={styles.switchLabel}>Snooze</Text>
+              <Switch
+                value={item.snooze}
+                onValueChange={() => toggleAlarmEdit(item.id, 'snooze')}
               />
             </View>
             <View style={styles.alarmSwitchRow}>
@@ -685,8 +752,6 @@ export default function App() {
             <Text style={styles.jsonTitle}>ESP32 JSON Payload</Text>
 
             <Text selectable style={styles.jsonText}>
-              *Note: Customized JSON Arguments Appended From Dashboard to
-              Payload Are Not Shown Here.*
               {JSON.stringify(esp32Payload, null, 2)}
             </Text>
           </View>
@@ -714,19 +779,12 @@ export default function App() {
         <Pressable
           accessibilityLabel="Open dashboard"
           style={styles.menuButton}
-          onPress={() =>{
-          setIsDashboardOpen(true);
-          console.log("pressed")
-          }
-          }>
-          <Text style={styles.menuButtonText}>=</Text>
+          onPress={() => setIsDashboardOpen(true)}>
+          <Text style={styles.menuButtonText}>☰</Text>
         </Pressable>
 
-        <ScrollView contentContainerStyle={styles.scrollContent}
-  keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.menuButtonSpacer} />
-          <Text style={styles.title}>☕ CoffeeAlarm</Text>
-          <Text style={styles.subtitle}>A Modifiable DIY ESP-32 Connected Alarm App </Text>
 
           {/* ESP32 CONNECTION */}
 
@@ -791,7 +849,7 @@ export default function App() {
               style={styles.input}
               value={newTime}
               onChangeText={handleTimeChange}
-              placeholder="Enter in AM/PM or military time (07:00)"
+              placeholder="Enter time (07:00)"
               keyboardType="number-pad"
               placeholderTextColor="#999"
               maxLength={5}
@@ -868,6 +926,8 @@ export default function App() {
             <View style={styles.alarmSettingRow}>
               <Text style={styles.inputLabel}>Vibration</Text>
               <Switch value={vibrate} onValueChange={setVibrate} />
+              <Text style={styles.inputLabel}>Snooze</Text>
+              <Switch value={snooze} onValueChange={setSnooze} />
             </View>
 
             <Pressable
@@ -928,7 +988,7 @@ export default function App() {
             <Pressable
               accessibilityRole="link"
               style={styles.githubLink}
-              onPress={() => Linking.openURL('https://github.com/austinjump-sec/CofeeAlarm/')}>
+              onPress={() => Linking.openURL('https://github.com/austinjump-sec/CoffeeAlarm/')}>
               <Text style={styles.githubLinkText}>View Arduino code on GitHub</Text>
             </Pressable>
 
@@ -978,8 +1038,7 @@ export default function App() {
         </View>
       </Modal>
 
-      {/* Dashboard Overlay */}
-      <Modal
+  <Modal
   visible={isDashboardOpen}
   transparent
   onRequestClose={() => setIsDashboardOpen(false)}>
@@ -1209,10 +1268,11 @@ export default function App() {
         
     </View>
   </View>
-</Modal>
-      
-      
+</Modal> 
+        
     </View>
-  );
-}
 
+
+
+      )}
+ 

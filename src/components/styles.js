@@ -45,8 +45,8 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '700',  
     textAlign: 'center',
-  includeFontPadding: false,  // <-- Critical for mobile
-  textAlignVertical: 'center',
+    includeFontPadding: false,  // <-- Critical for mobile
+    textAlignVertical: 'center',
   },
 
   menuButtonSpacer: {
@@ -173,6 +173,7 @@ const styles = StyleSheet.create({
     padding: 18,
     borderRadius: 18,
     backgroundColor: '#FFFDF9',
+    overflow: 'hidden',
   },
 
   infoModalTitle: {
@@ -193,7 +194,8 @@ const styles = StyleSheet.create({
   infoModalText: {
     color: '#6D5143',
     fontSize: 13,
-    lineHeight: 18,
+    lineHeight: 20,
+    includeFontPadding: false,
   },
 
   githubLink: {
@@ -603,7 +605,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 5,
   },
-   
+    
   emptyText: {
     color: '#967D6D',
     marginTop: 5,
@@ -629,4 +631,3 @@ jsonText: {
 
 });
 export default styles
-

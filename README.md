@@ -1,8 +1,8 @@
 # ☕ CoffeeAlarm
 
-CoffeeAlarm is a DIY alarm app for a coffee machine equipped with an ESP32 and a servo motor. Set an alarm on your Android phone, let the app discover the ESP32 over your local Wi-Fi network, and the ESP32 moves the servo to press the machine's physical button when the alarm fires.
+CoffeeAlarm is a DIY alarm app for a coffee machine equipped with an ESP32 and a servo motor. Set an alarm on your Android phone, let the app discover the ESP32 over your local Wi-Fi network, and trigger your coffee machine button remotely at your scheduled time.
 
-> **Safety first:** This project physically operates an appliance. Use a low-voltage, mechanically isolated button pusher, keep electronics away from water and heat, and test the servo with the coffee machine unplugged or otherwise safe. Never modify mains wiring unless you are qualified to do so.
+> **Safety first:** This project physically operates an appliance. Use a low-voltage, mechanically isolated button pusher, keep electronics away from water and heat, and test the servo with the coffee machine powered off. Never leave the rig unattended during commissioning.
 
 ## How it works
 
@@ -15,7 +15,7 @@ CoffeeAlarm is a DIY alarm app for a coffee machine equipped with an ESP32 and a
    - `DELETE /alarms/:id` removes an alarm from the ESP32.
 5. At the configured time, the ESP32 activates the servo long enough to press the coffee machine button, then returns it to its resting position.
 
-The ESP32 firmware is a separate part of the rig. It must provide the HTTP endpoints above, advertise one of the expected mDNS names, and implement the servo motion and alarm timing. This repository contains the React Native client, not a complete ESP32 firmware sketch.
+The ESP32 firmware is a separate part of the rig. It must provide the HTTP endpoints above, advertise one of the expected mDNS names, and implement the servo motion and alarm timing. This repository contains only the mobile application.
 
 ## Hardware
 
@@ -62,6 +62,26 @@ The app sends alarm data in this shape:
 }
 ```
 
+### ESP32 Settings and Customization
+
+The ESP32 firmware includes configurable settings for Wi-Fi, mDNS service advertising, GPIO pin selection, and servo timing. Modify these settings in your firmware code to match your hardware setup:
+
+- **Wi-Fi SSID and password:** Configure your network credentials.
+- **mDNS service name:** Choose between `alarm-esp32` or `alarm-espresso`, or define a custom name (ensure the app recognizes it).
+- **GPIO pin:** Select the PWM-capable pin connected to your servo signal wire.
+- **Servo angles:** Customize the press (activate) and release (rest) positions for your button.
+- **Activation duration:** Set how long the servo holds the pressed position (typically 200–500 ms).
+
+### Actuator Templates (Untested)
+
+The firmware repository includes example template implementations for different actuator types. These are **untested** and provided as reference starting points:
+
+- **`servo_actuator.cpp`** (default): Uses a standard servo motor (e.g., SG90) to physically press the button. This is the recommended and safest approach for most coffee machines.
+- **`motor_actuator.cpp`**: Uses a continuous-rotation motor or geared motor to press the button. Requires a servo motor or additional mechanical linkage and is more complex to integrate.
+- **`electrical_actuator.cpp`**: Uses a relay or solenoid to trigger an electrical pulse on the coffee machine button circuit. **⚠️ More dangerous:** requires knowledge of your machine's electrical schematic, isolation from high voltage, and proper relay sizing. Use only if you fully understand the electrical circuit and can ensure safe isolation.
+
+Choose the template that matches your hardware, review the implementation, and test thoroughly before deploying to your coffee machine.
+
 ## App setup from source
 
 This is an Expo React Native project. The current project uses Expo SDK 57 and React Native 0.86.
@@ -86,7 +106,7 @@ For a local Android development build:
 npx expo run:android
 ```
 
-The app requests network discovery/network access, notifications, wake-lock, and exact-alarm capabilities needed for discovery and reliable alarms. Android may still require you to grant notification and exact-alarm access in system settings.
+The app requests network discovery/network access, notifications, wake-lock, and exact-alarm capabilities needed for discovery and reliable alarms. Android may still require you to grant notification and nearby-device permissions at runtime.
 
 ## Sideload the Android APK
 
@@ -103,11 +123,11 @@ To install it on an Android phone:
 5. Grant notification, nearby/local-network, and alarm-related permissions when prompted. If exact alarms are not enabled automatically, enable CoffeeAlarm under the Android alarm/reminder or exact-alarm settings.
 6. Put the phone and ESP32 on the same 2.4 GHz Wi-Fi network if your access point separates bands.
 
-Only install APKs you built yourself or obtained from a source you trust. An APK distributed outside Google Play is not automatically verified by Google Play Protect; review the build source and artifact before installing.
+Only install APKs you built yourself or obtained from a source you trust. An APK distributed outside Google Play is not automatically verified by Google Play Protect; review the build source and commit history before installing.
 
 ### Build your own APK
 
-For a reproducible release build, configure EAS for this Expo project and build an installable Android APK. An EAS profile must produce an APK rather than an AAB for direct sideloading. For example, after installing/configuring the EAS CLI and logging in:
+For a reproducible release build, configure EAS for this Expo project and build an installable Android APK. An EAS profile must produce an APK rather than an AAB for direct sideloading. For example:
 
 ```bash
 npm install
@@ -115,7 +135,7 @@ npx eas build:configure
 npx eas build --platform android --profile preview
 ```
 
-Download the resulting APK from the EAS build page, then follow the sideload steps above. The exact EAS profile and credentials are intentionally left to the maintainer; do not commit signing keys or secrets.
+Download the resulting APK from the EAS build page, then follow the sideload steps above. The exact EAS profile and credentials are intentionally left to the maintainer; do not commit signing keys or secrets to the repository.
 
 ## First-use checklist
 

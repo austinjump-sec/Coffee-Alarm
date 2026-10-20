@@ -14,11 +14,10 @@ namespace ServoAlarm {
 // WiFi
 // ============================================================
 
-const char* WIFI_SSID = "YOUR_WIFI_NAME";
-const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
+constexpr const char* WIFI_SSID = "YOUR_WIFI_NAME";
+constexpr const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
 
 WebServer server(80);
-Preferences preferences;
 
 // ============================================================
 // Hardware
@@ -26,9 +25,9 @@ Preferences preferences;
 
 // Connect the servo signal wire to this pin. Power the servo from
 // an appropriate external supply and share its ground with the ESP32.
-const int SERVO_PIN = 26;
-const int SERVO_REST_ANGLE = 0;
-const int SERVO_TRIGGER_ANGLE = 90;
+constexpr int SERVO_PIN = 26;
+constexpr int SERVO_REST_ANGLE = 0;
+constexpr int SERVO_TRIGGER_ANGLE = 90;
 
 Servo actuatorServo;
 
@@ -61,7 +60,7 @@ bool isToday(const String& dayName) {
     return false;
   }
 
-  const char* names[] = {
+  static const char* names[] = {
     "Sunday",
     "Monday",
     "Tuesday",
@@ -109,11 +108,11 @@ bool timeMatches(const String& alarmTime) {
 // ============================================================
 
 void triggerCoffeeMaker(const Alarm& alarm) {
-  Serial.println("================================");
-  Serial.println("ALARM TRIGGERED");
-  Serial.println("Label: " + alarm.label);
-  Serial.println("ID: " + alarm.id);
-  Serial.println("================================");
+  Serial.println(F("================================"));
+  Serial.println(F("ALARM TRIGGERED"));
+  Serial.println(String(F("Label: ")) + alarm.label);
+  Serial.println(String(F("ID: ")) + alarm.id);
+  Serial.println(F("================================"));
 
   actuatorServo.write(SERVO_TRIGGER_ANGLE);
   delay(alarm.timeout);
@@ -139,30 +138,28 @@ int findAlarm(const String& id) {
 // ============================================================
 
 void handleCreateAlarm() {
-
   if (!server.hasArg("plain")) {
     server.send(
       400,
       "application/json",
-      "{\"error\":\"Missing JSON body\"}"
+      F("{\"error\":\"Missing JSON body\"}")
     );
     return;
   }
 
   String body = server.arg("plain");
 
-  Serial.println("Received alarm:");
+  Serial.println(F("Received alarm:"));
   Serial.println(body);
 
-  JsonDocument doc;
-
+  StaticJsonDocument<512> doc;
   DeserializationError error = deserializeJson(doc, body);
 
   if (error) {
     server.send(
       400,
       "application/json",
-      "{\"error\":\"Invalid JSON\"}"
+      F("{\"error\":\"Invalid JSON\"}")
     );
     return;
   }
@@ -173,14 +170,13 @@ void handleCreateAlarm() {
 
   bool enabled = doc["enabled"] | true;
   bool vibrate = doc["vibrate"] | true;
-
   int timeout = doc["timeout"] | 5000;
 
   if (id == "" || time == "") {
     server.send(
       400,
       "application/json",
-      "{\"error\":\"id and time are required\"}"
+      F("{\"error\":\"id and time are required\"}")
     );
     return;
   }
@@ -192,18 +188,16 @@ void handleCreateAlarm() {
   int index = findAlarm(id);
 
   if (index == -1) {
-
     if (alarmCount >= 20) {
       server.send(
         507,
         "application/json",
-        "{\"error\":\"Alarm storage full\"}"
+        F("{\"error\":\"Alarm storage full\"}")
       );
       return;
     }
 
     index = alarmCount++;
-
     alarms[index].id = id;
   }
 
@@ -222,11 +216,9 @@ void handleCreateAlarm() {
   alarm.dayCount = 0;
 
   if (doc["days"].is<JsonArray>()) {
-
     JsonArray days = doc["days"];
 
     for (JsonVariant day : days) {
-
       if (alarm.dayCount >= 7) {
         break;
       }
@@ -239,13 +231,11 @@ void handleCreateAlarm() {
   // Custom JSON argument
   // ----------------------------------------------------------
 
-  Serial.println("Custom JSON:");
+  Serial.println(F("Custom JSON:"));
 
   for (JsonPair pair : doc.as<JsonObject>()) {
-
     String key = pair.key().c_str();
 
-    // Ignore the standard fields.
     if (
       key != "id" &&
       key != "time" &&
@@ -255,9 +245,9 @@ void handleCreateAlarm() {
       key != "days" &&
       key != "vibrate"
     ) {
-      Serial.print("  ");
+      Serial.print(F("  "));
       Serial.print(key);
-      Serial.print(" = ");
+      Serial.print(F(" = "));
       Serial.println(pair.value().as<String>());
     }
   }
@@ -266,8 +256,7 @@ void handleCreateAlarm() {
   // Respond
   // ----------------------------------------------------------
 
-  JsonDocument response;
-
+  StaticJsonDocument<256> response;
   response["success"] = true;
   response["id"] = alarm.id;
   response["message"] = "Alarm stored";
@@ -275,11 +264,7 @@ void handleCreateAlarm() {
   String output;
   serializeJson(response, output);
 
-  server.send(
-    200,
-    "application/json",
-    output
-  );
+  server.send(200, "application/json", output);
 }
 
 // ============================================================
@@ -287,12 +272,10 @@ void handleCreateAlarm() {
 // ============================================================
 
 void handleDeleteAlarm() {
-
   String path = server.uri();
-
   String id = path.substring(strlen("/alarms/"));
 
-  Serial.println("Delete alarm: " + id);
+  Serial.println(String(F("Delete alarm: ")) + id);
 
   int index = findAlarm(id);
 
@@ -300,12 +283,11 @@ void handleDeleteAlarm() {
     server.send(
       404,
       "application/json",
-      "{\"error\":\"Alarm not found\"}"
+      F("{\"error\":\"Alarm not found\"}")
     );
     return;
   }
 
-  // Shift alarms down.
   for (int i = index; i < alarmCount - 1; i++) {
     alarms[i] = alarms[i + 1];
   }
@@ -315,7 +297,7 @@ void handleDeleteAlarm() {
   server.send(
     200,
     "application/json",
-    "{\"success\":true}"
+    F("{\"success\":true}")
   );
 }
 
@@ -324,8 +306,7 @@ void handleDeleteAlarm() {
 // ============================================================
 
 void handleStatus() {
-
-  JsonDocument doc;
+  StaticJsonDocument<256> doc;
 
   doc["status"] = "ok";
   doc["device"] = "alarm-esp32";
@@ -333,14 +314,9 @@ void handleStatus() {
   doc["ip"] = WiFi.localIP().toString();
 
   String output;
-
   serializeJson(doc, output);
 
-  server.send(
-    200,
-    "application/json",
-    output
-  );
+  server.send(200, "application/json", output);
 }
 
 // ============================================================
@@ -348,13 +324,10 @@ void handleStatus() {
 // ============================================================
 
 void handleGetAlarms() {
-
-  JsonDocument doc;
-
+  StaticJsonDocument<1024> doc;
   JsonArray array = doc["alarms"].to<JsonArray>();
 
   for (int i = 0; i < alarmCount; i++) {
-
     JsonObject obj = array.add<JsonObject>();
 
     obj["id"] = alarms[i].id;
@@ -372,14 +345,8 @@ void handleGetAlarms() {
   }
 
   String output;
-
   serializeJson(doc, output);
-
-  server.send(
-    200,
-    "application/json",
-    output
-  );
+  server.send(200, "application/json", output);
 }
 
 // ============================================================
@@ -387,35 +354,12 @@ void handleGetAlarms() {
 // ============================================================
 
 void setupRoutes() {
+  server.on("/status", HTTP_GET, handleStatus);
+  server.on("/alarms", HTTP_GET, handleGetAlarms);
+  server.on("/alarms", HTTP_POST, handleCreateAlarm);
 
-  // App calls this when testing the ESP32.
-  server.on(
-    "/status",
-    HTTP_GET,
-    handleStatus
-  );
-
-  // Optional: useful for debugging.
-  server.on(
-    "/alarms",
-    HTTP_GET,
-    handleGetAlarms
-  );
-
-  // App's POST /alarms
-  server.on(
-    "/alarms",
-    HTTP_POST,
-    handleCreateAlarm
-  );
-
-  // DELETE /alarms/{id}
   server.onNotFound([]() {
-
-    if (
-      server.method() == HTTP_DELETE &&
-      server.uri().startsWith("/alarms/")
-    ) {
+    if (server.method() == HTTP_DELETE && server.uri().startsWith("/alarms/")) {
       handleDeleteAlarm();
       return;
     }
@@ -423,7 +367,7 @@ void setupRoutes() {
     server.send(
       404,
       "application/json",
-      "{\"error\":\"Not found\"}"
+      F("{\"error\":\"Not found\"}")
     );
   });
 }
@@ -433,7 +377,6 @@ void setupRoutes() {
 // ============================================================
 
 void begin() {
-
   Serial.begin(115200);
 
   actuatorServo.setPeriodHertz(50);
@@ -445,25 +388,19 @@ void begin() {
   // ----------------------------------------------------------
 
   WiFi.mode(WIFI_STA);
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
-  WiFi.begin(
-    WIFI_SSID,
-    WIFI_PASSWORD
-  );
-
-  Serial.print("Connecting to WiFi");
+  Serial.print(F("Connecting to WiFi"));
 
   while (WiFi.status() != WL_CONNECTED) {
-
     delay(500);
-
-    Serial.print(".");
+    Serial.print(F("."));
   }
 
   Serial.println();
-  Serial.println("WiFi connected");
+  Serial.println(F("WiFi connected"));
 
-  Serial.print("IP address: ");
+  Serial.print(F("IP address: "));
   Serial.println(WiFi.localIP());
 
   // ----------------------------------------------------------
@@ -484,23 +421,16 @@ void begin() {
   // ----------------------------------------------------------
 
   if (MDNS.begin("alarm-esp32")) {
-
-    Serial.println("mDNS started");
+    Serial.println(F("mDNS started"));
 
     // This is what your React Native Zeroconf scanner
     // is looking for:
     //
     // _http._tcp.local.
     //
-    MDNS.addService(
-      "http",
-      "tcp",
-      80
-    );
-
+    MDNS.addService("http", "tcp", 80);
   } else {
-
-    Serial.println("mDNS failed");
+    Serial.println(F("mDNS failed"));
   }
 
   // ----------------------------------------------------------
@@ -508,10 +438,9 @@ void begin() {
   // ----------------------------------------------------------
 
   setupRoutes();
-
   server.begin();
 
-  Serial.println("HTTP server started");
+  Serial.println(F("HTTP server started"));
 }
 
 // ============================================================
@@ -519,26 +448,17 @@ void begin() {
 // ============================================================
 
 void handleLoop() {
-
   server.handleClient();
-
-  // ----------------------------------------------------------
-  // Check alarms
-  // ----------------------------------------------------------
 
   static int lastMinute = -1;
 
   struct tm timeinfo;
 
   if (getLocalTime(&timeinfo)) {
-
-    // Only evaluate once per minute.
     if (timeinfo.tm_min != lastMinute) {
-
       lastMinute = timeinfo.tm_min;
 
       for (int i = 0; i < alarmCount; i++) {
-
         Alarm& alarm = alarms[i];
 
         if (!alarm.enabled) {
@@ -562,4 +482,3 @@ void handleLoop() {
 }
 
 }  // namespace ServoAlarm
-

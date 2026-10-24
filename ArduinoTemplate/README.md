@@ -1,8 +1,8 @@
 
 ## motor_actuator.cpp (Motor Actuator)
-### This file is meant for use with ESP32 and a servo motor, utilizing the alarm as a trigger for a button-pushing mechanism
+ This file is meant for use with ESP32 and a servo motor, utilizing the alarm as a trigger for a button-pushing mechanism
 ## electrical_actuator.cpp (Electrical Actuator)
-### This file is meant for DIY electrical work with ESP32 and your target coffee pot, this could be dangerous, do NOT connect main voltage directly to ESP-32. Instructions provided in main application, untested and only for advanced hobbyists
+ This file is meant for DIY electrical work with ESP32 and your target coffee pot, this could be dangerous, do NOT connect main voltage directly to ESP-32. Instructions provided in main application, untested and only for advanced hobbyists
 ## How to Build a Rig
 There are two ways it can be built, absolutely dirt cheap using common household supplies, or project hardware that is readily available at the average Best Buy or Walmart.
 ### Materials

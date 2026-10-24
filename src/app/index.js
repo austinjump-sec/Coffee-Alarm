@@ -260,6 +260,9 @@ const militaryToAm = Array.from({ length: 24 }, (_, hour) => {
         }
       } catch (error) {
         console.error('Could not load alarms:', error);
+        
+        const message = error instanceof Error ? error.message : String(error);
+        Alert.alert('Issue loading alarms:', message)
       } finally {
         setAlarmsLoaded(true);
         setSettingsLoaded(true);
@@ -353,7 +356,7 @@ const militaryToAm = Array.from({ length: 24 }, (_, hour) => {
       setIsScanning(false);
     };
 
-    zeroconf.on('start', handleStart);
+    zeroconf.on('start', handleStart);  
     zeroconf.on('resolved', handleResolved);
     zeroconf.on('error', handleError);
 
@@ -405,9 +408,11 @@ const militaryToAm = Array.from({ length: 24 }, (_, hour) => {
 
       Alert.alert('ESP32 Connected', 'The ESP32 responded successfully.');
     } catch (error) {
+    
+      const message = error instanceof Error ? error.message : String(error);
       console.error('ESP32 connection failed:', error);
 
-      Alert.alert('Connection Failed', error);
+      Alert.alert('Connection Failed', message);
     }
   };
 
@@ -448,11 +453,12 @@ const militaryToAm = Array.from({ length: 24 }, (_, hour) => {
 
       return true;
     } catch (error) {
+    
+      const message = error instanceof Error ? error.message : String(error);
       console.error('Could not communicate with ESP32:', error);
 
       Alert.alert(
-        'ESP32 Sync Failed',
-        'The alarm was saved on the phone, but could not be sent to the ESP32.'
+        'ESP32 Sync Failed', message
       );
 
       return false;
@@ -481,7 +487,10 @@ const militaryToAm = Array.from({ length: 24 }, (_, hour) => {
 
       console.log('Alarm deleted from ESP32');
     } catch (error) {
+    
+      const message = error instanceof Error ? error.message : String(error);
       console.error('Could not delete alarm from ESP32:', error);
+      Alert.alert('Could not delete alarm from ESP32', message)
     }
   };
 

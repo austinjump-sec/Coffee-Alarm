@@ -12,6 +12,7 @@
       "bundleIdentifier": "com.coffeealarm.app"
     },
     "android": {
+      "usesCleartextTraffic": true,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/logo2.png",

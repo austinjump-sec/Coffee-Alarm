@@ -32,7 +32,7 @@ export default function App() {
 //------------------------------
 //Default States/Initalizations
 //------------------------------
-
+  const [testState, setTestState] = useState(false);
   const [alarms, setAlarms] = useState([]);
   const [alarmsLoaded, setAlarmsLoaded] = useState(false);
   const [defaultAlarmDays, setDefaultAlarmDays] = useState([
@@ -524,6 +524,11 @@ const militaryToAm = Array.from({ length: 24 }, (_, hour) => {
   // -----------------------------
 
   const addAlarm = async () => {
+    if (testState){
+      const debugTime = new Date(Date.now())
+      newTime = debugTIme
+      setTestState(false)
+    }
     if (!newTime) {
       Alert.alert('Missing Time', 'Please select an alarm time.');
       return;
@@ -823,6 +828,7 @@ const militaryToAm = Array.from({ length: 24 }, (_, hour) => {
             </View>
 
             <View style={styles.scanButtonRow}>
+              {!esp2 && (
               <Pressable
                 style={[styles.primaryButton, styles.scanButton]}
                 onPress={scanForESP32}
@@ -831,6 +837,7 @@ const militaryToAm = Array.from({ length: 24 }, (_, hour) => {
                   {isScanning ? 'Scanning...' : 'Find ESP32'}
                 </Text>
               </Pressable>
+                  )}
               <Pressable
                 accessibilityLabel="ESP32 setup information"
                 style={styles.infoButton}

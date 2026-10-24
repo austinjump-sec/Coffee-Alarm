@@ -1,5 +1,7 @@
 # ☕ CoffeeAlarm
 
+> [!INFO]
+> If you are searching for information or a guide to help build your rig, read the README in the ArduinoTemplate directory :).
 CoffeeAlarm is a DIY alarm app for a coffee machine equipped with an ESP32 and a servo motor. Set an alarm on your Android phone, let the app discover the ESP32 over your local Wi-Fi network, and trigger your coffee machine button remotely at your scheduled time.
 
 > **Safety first:** This project physically operates an appliance. Use a low-voltage, mechanically isolated button pusher, keep electronics away from water and heat, and test the servo with the coffee machine powered off. Never leave the rig unattended during commissioning.
@@ -72,12 +74,12 @@ The ESP32 firmware includes configurable settings for Wi-Fi, mDNS service advert
 - **Servo angles:** Customize the press (activate) and release (rest) positions for your button.
 - **Activation duration:** Set how long the servo holds the pressed position (typically 200–500 ms).
 
-### Actuator Templates (Untested)
+### Actuator Templates 
 
-The firmware repository includes example template implementations for different actuator types. These are **untested** and provided as reference starting points:
+The firmware repository includes example template implementations for different actuator types.
 
 - **`motor_actuator.cpp`** (safest, easiest): Uses a standard servo motor (e.g., SG90) to physically press the button. This is the recommended and safest approach for most coffee machines.
-- **`electrical_actuator.cpp`**: Uses a relay or solenoid to trigger an electrical pulse on the coffee machine button circuit. **⚠️ More dangerous:** requires knowledge of your machine's electrical schematic, isolation from high voltage, and proper relay sizing. Use only if you fully understand the electrical circuit and can ensure safe isolation.
+- **`electrical_actuator.cpp`**: Uses a relay or solenoid to trigger an electrical pulse on the coffee machine button circuit. **⚠️ More dangerous:** requires knowledge of your machine's electrical schematic, isolation from high voltage, and proper relay sizing. Use only if you fully understand the electrical circuit and can ensure safe isolation. **⚠️ Untested** 
 
 Choose the template that matches your hardware, review the implementation, and test thoroughly before deploying to your coffee machine.
 

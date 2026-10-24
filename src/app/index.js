@@ -407,7 +407,7 @@ const militaryToAm = Array.from({ length: 24 }, (_, hour) => {
     } catch (error) {
       console.error('ESP32 connection failed:', error);
 
-      Alert.alert('Connection Failed', 'Could not communicate with the ESP32.');
+      Alert.alert('Connection Failed', error);
     }
   };
 

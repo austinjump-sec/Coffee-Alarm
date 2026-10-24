@@ -525,13 +525,7 @@ const militaryToAm = Array.from({ length: 24 }, (_, hour) => {
   // -----------------------------
 
   const addAlarm = async () => {
-    if (testState){
-      const debugDate = new Date(Date.now() + 60 * 1000);
-      const nextTime = `${String(debugDate.getHours()).padStart(2, '0')}:${String(debugDate.getMinutes()).padStart(2, '0')}`;
-
-      setNewTime(nextTime);
-      setTestState(false)
-    }
+    
     if (!newTime) {
       Alert.alert('Missing Time', 'Please select an alarm time.');
       return;
@@ -570,11 +564,16 @@ const militaryToAm = Array.from({ length: 24 }, (_, hour) => {
       Alert.alert('Select Days', 'Please select at least one day.');
       return;
     }
-
+    if (testState){
+      const debugDate = new Date(Date.now() + 60 * 1000);
+      const normalizedTime = `${String(debugDate.getHours()).padStart(2, '0')}:${String(debugDate.getMinutes()).padStart(2, '0')}`;
+      setTestState(false)
+    }
+    else {
     const normalizedTime = `${String(hours).padStart(2, '0')}:${String(
       minutes
     ).padStart(2, '0')}`;
-
+    }
     const alarm = {
       id: Date.now().toString(),
       time: normalizedTime,

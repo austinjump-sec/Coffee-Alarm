@@ -12,7 +12,6 @@
       "bundleIdentifier": "com.coffeealarm.app"
     },
     "android": {
-      "usesCleartextTraffic": true,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/logo2.png",
@@ -41,40 +40,45 @@
       }
     },
     "plugins": [
-      "expo-audio",
-      "expo-alarm-module"
-    ]
-  },
-  "web": {
-    "output": "static",
-    "favicon": "./assets/images/logo2.png"
-  },
-  "plugins": [
-    [
-      "expo-audio",
-      {
-        "enableBackgroundPlayback": true
-      }
-    ],
-    "expo-router",
-    "expo-notifications",
-    {
-      "sounds": [
-        "./assets/sounds/default.wav",
-        "./assets/sounds/beep.wav"
+      [
+        "expo-audio",
+        {
+          "enableBackgroundPlayback": true
+        }
+      ],
+      "expo-alarm-module",
+      "expo-router",
+      [
+        "expo-notifications",
+        {
+      
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#208AEF",
+          "image": "./assets/images/logo2.png",
+          "imageWidth": 76
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
       ]
+    ],
+    "web": {
+      "output": "static",
+      "favicon": "./assets/images/logo2.png"
     },
-    [
-      "expo-splash-screen",
-      {
-        "backgroundColor": "#208AEF",
-        "image": "./assets/images/logo2.png",
-        "imageWidth": 76
-      }
-    ]
-  ],
-  "experiments": {
-    "typedRoutes": true,
-    "reactCompiler": true
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
   }
 }
+

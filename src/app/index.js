@@ -398,6 +398,7 @@ const militaryToAm = Array.from({ length: 24 }, (_, hour) => {
     }
 
     try {
+      setTestState(true)
       const response = await fetch(`${esp32.confirmedAddress}/status`, {
         method: 'GET',
       });
@@ -406,7 +407,7 @@ const militaryToAm = Array.from({ length: 24 }, (_, hour) => {
         throw new Error(`ESP32 returned ${response.status}`);
       }
 
-      Alert.alert('ESP32 Connected', 'The ESP32 responded successfully.');
+      Alert.alert('The ESP32 responded successfully.', 'Creating dummy alarm for motor testing');
     } catch (error) {
     
       const message = error instanceof Error ? error.message : String(error);

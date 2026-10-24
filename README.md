@@ -1,6 +1,6 @@
 # ☕ CoffeeAlarm
 
-> [!INFO]
+> [!TIP]
 > If you are searching for information or a guide to help build your rig, read the README in the ArduinoTemplate directory :).
 CoffeeAlarm is a DIY alarm app for a coffee machine equipped with an ESP32 and a servo motor. Set an alarm on your Android phone, let the app discover the ESP32 over your local Wi-Fi network, and trigger your coffee machine button remotely at your scheduled time.
 

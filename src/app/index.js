@@ -526,8 +526,10 @@ const militaryToAm = Array.from({ length: 24 }, (_, hour) => {
 
   const addAlarm = async () => {
     if (testState){
-      const debugTime = new Date(Date.now())
-      newTime = debugTIme
+      const debugDate = new Date(Date.now() + 60 * 1000);
+      const nextTime = `${String(debugDate.getHours()).padStart(2, '0')}:${String(debugDate.getMinutes()).padStart(2, '0')}`;
+
+      setNewTime(nextTime);
       setTestState(false)
     }
     if (!newTime) {
@@ -829,7 +831,7 @@ const militaryToAm = Array.from({ length: 24 }, (_, hour) => {
             </View>
 
             <View style={styles.scanButtonRow}>
-              {!esp2 && (
+              {!esp32 && (
               <Pressable
                 style={[styles.primaryButton, styles.scanButton]}
                 onPress={scanForESP32}
